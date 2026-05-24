@@ -12,6 +12,10 @@ export default function Regras() {
                 <p className="text-gray-400">
                     Entenda como funciona a distribuição de prêmios e a pontuação oficial do sistema.
                 </p>
+                <br />
+                <p>
+                    Valor da participação: R$ 100,00
+                </p>
             </div>
 
             {/* SEÇÃO 1: PREMIAÇÃO */}
@@ -111,6 +115,37 @@ export default function Regras() {
                     </div>
                 </div>
             </section>
+
+
+
+            {/* Desempate */}
+            <section className="bg-slate-900/80 p-8 rounded-3xl border border-white/10 shadow-xl">
+                <h2 className="text-2xl font-black text-white mb-6 flex items-center gap-3 border-b border-white/10 pb-4">
+                    ⚽ Critérios de Desempate das colocações finais do bolão
+                </h2>
+
+                {/* Removi o grid aqui para o elemento interno ocupar 100% da largura */}
+                <div className="bg-black/40 p-5 rounded-xl border border-white/5 w-full">
+                    <h3 className="font-black text-emerald-400 mb-1">Os critérios para desempate serão:</h3>
+                    <p className="text-gray-400 text-sm mb-4">
+                        Quem acertou mais em placares exatos e em palpites especiais
+                    </p>
+
+                    {/* Adicionei 'flex' e 'gap' para organizar melhor, se quiser */}
+                    <div className="flex flex-col md:flex-row gap-6 mt-3">
+                        <div className="font-bold text-white text-lg bg-emerald-950/30 p-3 rounded-lg border border-emerald-500/10 flex-1">
+                            1° critério: Quantidade de acertos de placares exatos
+                        </div>
+                        <div className="font-bold text-white text-lg bg-purple-950/30 p-3 rounded-lg border border-purple-500/10 flex-1">
+                            2° critério (caso ainda permaneça empatado): Quantidade de acertos nos palpites especiais
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+
+
         </div>
     );
 }
