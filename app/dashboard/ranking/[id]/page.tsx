@@ -56,24 +56,21 @@ export default function DetalheParticipante({ params }: { params: { id: string }
   useEffect(() => {
     async function carregarTudo() {
       try {
-        // 1. Puxar as tabelas de gabarito reais (Mata-Mata e Especiais) para cruzar
+        // 1. Puxar resultados reais (usando os nomes das tabelas do seu print)
         const { data: mmReal } = await supabase.from('resultados_matamata').select('*');
         const { data: espReal } = await supabase.from('resultados_especiais').select('*');
         
         const mapaMMReal = new Map(mmReal?.map(x => [x.fase_vaga, x.selecao_real]));
         const mapaEspReal = new Map(espReal?.map(x => [x.pergunta_id, x.resposta_real]));
 
-        // 2. Puxar Perfil e Pontuação consolidada do usuário
+        // 2. Puxar Perfil
         const { data: perfilData } = await supabase.from('perfis').select('id, nome, pontos').eq('id', params.id).single();
-        if (!perfilData) {
-          notFound();
-          return;
-        }
+        if (!perfilData) { notFound(); return; }
         setPerfil(perfilData);
 
-        // 3. Puxar Palpites da Fase de Grupos cruzando com tabela JOGOS
+        // 3. Puxar Palpites Grupos (Tabela correta: palpites_jogos)
         const { data: pGrupos } = await supabase
-          .from('palpites')
+          .from('palpites_jogos') // Corrigido para palpites_jogos
           .select(`
             jogo_id,
             palpite_casa,
@@ -94,7 +91,7 @@ export default function DetalheParticipante({ params }: { params: { id: string }
         })) || [];
         setPalpitesG(formatadoG.sort((a,b) => a.jogo_id - b.jogo_id));
 
-        // 4. Puxar Palpites do Mata-Mata cruzando com gabarito real
+        // 4. Puxar Palpites Mata-Mata (Tabela correta: palpites_matamata)
         const { data: pMM } = await supabase.from('palpites_matamata').select('*').eq('user_id', params.id);
         
         const formatadoMM = pMM?.map(p => ({
@@ -104,7 +101,7 @@ export default function DetalheParticipante({ params }: { params: { id: string }
         })) || [];
         setPalpitesMM(formatadoMM);
 
-        // 5. Puxar Palpites Especiais cruzando com gabarito real e rótulos
+        // 5. Puxar Palpites Especiais (Tabela correta: palpites_especiais)
         const { data: pEsp } = await supabase.from('palpites_especiais').select('*').eq('user_id', params.id);
         
         const formatadoEsp = pEsp?.map(p => ({

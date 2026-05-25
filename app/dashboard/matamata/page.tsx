@@ -62,7 +62,7 @@ const SEMIS = [
 ];
 
 const SELECOES_COPA = [
-  "México", "África do Sul", "Coreia do Sul", "Tchéquia", 
+  "México", "Africa do Sul", "Coreia do Sul", "Tchéquia", 
   "Canadá", "Bósnia e Herzegovina", "Catar", "Suíça", 
   "Brasil", "Marrocos", "Haiti", "Escócia", 
   "EUA", "Paraguai", "Austrália", "Turquia", 
@@ -71,7 +71,7 @@ const SELECOES_COPA = [
   "Bélgica", "Egito", "Irã", "Nova Zelândia", 
   "Espanha", "Cabo Verde", "Arábia Saudita", "Uruguai", 
   "França", "Senegal", "Iraque", "Noruega", 
-  "Argentina", "Argélia", "Áustria", "Jordânia", 
+  "Argentina", "Argélia", "Austria", "Jordânia", 
   "Portugal", "RD do Congo", "Uzbequistão", "Colômbia", 
   "Inglaterra", "Croácia", "Gana", "Panamá"
 ].sort();
