@@ -224,7 +224,7 @@ export default function PalpitesMataMata() {
         const t1 = obterVencedor(c.req1);
         const t2 = obterVencedor(c.req2);
         return (
-          <div key={c.id} className="bg-slate-950 p-3.5 rounded-xl border border-white/5 space-y-3 shadow-xl hover:border-white/10 transition">
+          <div key={c.id} className="bg-slate-800 p-3.5 rounded-xl border border-white/5 space-y-3 shadow-xl hover:border-white/10 transition">
             <span className={`text-[10px] font-bold block uppercase ${cor}`}>{c.label} | {c.id}</span>
             <div className={`p-2 rounded border text-xs text-gray-200 ${t1 ? 'bg-black/40 border-white/10 font-bold' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
               {t1 || `⚡ Aguardando ${c.req1}`}

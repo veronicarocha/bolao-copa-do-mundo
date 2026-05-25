@@ -31,7 +31,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-blue-900 to-slate-950 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-800 via-blue-900 to-slate-950 flex flex-col items-center justify-center p-4">
       {/* Container com efeito Glassmorphism */}
       <div className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-2xl">
         
