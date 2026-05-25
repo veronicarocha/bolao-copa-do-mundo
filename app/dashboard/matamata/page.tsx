@@ -62,12 +62,18 @@ const SEMIS = [
 ];
 
 const SELECOES_COPA = [
-  'Alemanha', 'Angola', 'Arábia Saudita', 'Argélia', 'Argentina', 'Austrália', 'Áustria', 'Bélgica', 
-  'Brasil', 'Camarões', 'Canadá', 'Catar', 'Chile', 'Colômbia', 'Coreia do Sul', 'Costa do Marfim', 
-  'Costa Rica', 'Croácia', 'Dinamarca', 'Egito', 'Equador', 'Escócia', 'Espanha', 'EUA', 
-  'França', 'Gana', 'Holanda', 'Honduras', 'Inglaterra', 'Irã', 'Iraque', 'Itália', 
-  'Japão', 'Mali', 'Marrocos', 'México', 'Nigéria', 'Noruega', 'Nova Zelândia', 'País de Gales', 
-  'Panamá', 'Paraguai', 'Peru', 'Portugal', 'Senegal', 'Sérvia', 'Suíça', 'Uruguai'
+  "México", "África do Sul", "Coreia do Sul", "Tchéquia", 
+  "Canadá", "Bósnia e Herzegovina", "Catar", "Suíça", 
+  "Brasil", "Marrocos", "Haiti", "Escócia", 
+  "EUA", "Paraguai", "Austrália", "Turquia", 
+  "Alemanha", "Curaçau", "Costa do Marfim", "Equador", 
+  "Holanda", "Japão", "Suécia", "Tunísia", 
+  "Bélgica", "Egito", "Irã", "Nova Zelândia", 
+  "Espanha", "Cabo Verde", "Arábia Saudita", "Uruguai", 
+  "França", "Senegal", "Iraque", "Noruega", 
+  "Argentina", "Argélia", "Áustria", "Jordânia", 
+  "Portugal", "RD do Congo", "Uzbequistão", "Colômbia", 
+  "Inglaterra", "Croácia", "Gana", "Panamá"
 ].sort();
 
 export default function PalpitesMataMata() {

@@ -38,7 +38,7 @@ export default function PalpitesGrupos() {
                         .from('palpites_jogos')
                         .select('*')
                         .eq('user_id', user.id);
-                        
+
                     const initialPalpites: Record<string, { casa: string; fora: string }> = {};
                     userPalpites?.forEach(p => {
                         initialPalpites[p.jogo_id] = { casa: p.palpite_casa.toString(), fora: p.palpite_fora.toString() };
@@ -164,21 +164,23 @@ export default function PalpitesGrupos() {
                             </h2>
                             <div className="space-y-4">
                                 {jogos.filter(j => j.grupo === grupo).map(jogo => (
-                                    <div key={jogo.id} className="flex items-center justify-between p-3.5 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition">
+                                    <div key={jogo.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition gap-2">
 
-                                        {/* Time Casa */}
-                                        <div className="flex items-center space-x-3 w-[40%]">
-                                            <span className="text-2xl filter drop-shadow-sm">{jogo.bandeira_casa}</span>
-                                            <span className="text-sm font-semibold text-gray-200 truncate">{jogo.time_casa}</span>
+                                        {/* Time Casa - Ocupa espaço, mas não esmaga o centro */}
+                                        <div className="flex items-center space-x-2 w-[35%] min-w-0">
+                                            <span className="text-xl sm:text-2xl">{jogo.bandeira_casa}</span>
+                                            <span className="text-[11px] sm:text-sm font-semibold text-gray-200 truncate block">
+                                                {jogo.time_casa}
+                                            </span>
                                         </div>
 
-                                        {/* Quadrantes de Input do Placar */}
-                                        <div className="flex items-center space-x-1.5 justify-center w-[20%]">
+                                        {/* Quadrantes de Input - O shrink-0 garante que eles nunca diminuam de tamanho */}
+                                        <div className="flex items-center space-x-1 justify-center shrink-0">
                                             <input
                                                 type="number"
                                                 min="0"
                                                 disabled={apenasLeitura}
-                                                className="w-11 h-11 text-center bg-black/40 border border-white/10 rounded-xl font-bold text-white focus:outline-none focus:border-emerald-500 transition disabled:opacity-40 disabled:bg-slate-900"
+                                                className="w-9 h-9 sm:w-11 sm:h-11 text-center bg-black/40 border border-white/10 rounded-lg sm:rounded-xl font-bold text-white focus:outline-none focus:border-emerald-500 transition disabled:opacity-40 disabled:bg-slate-900"
                                                 value={palpites[jogo.id]?.casa || ''}
                                                 onChange={(e) => handleInputChange(jogo.id, 'casa', e.target.value)}
                                             />
@@ -187,16 +189,18 @@ export default function PalpitesGrupos() {
                                                 type="number"
                                                 min="0"
                                                 disabled={apenasLeitura}
-                                                className="w-11 h-11 text-center bg-black/40 border border-white/10 rounded-xl font-bold text-white focus:outline-none focus:border-emerald-500 transition disabled:opacity-40 disabled:bg-slate-900"
+                                                className="w-9 h-9 sm:w-11 sm:h-11 text-center bg-black/40 border border-white/10 rounded-lg sm:rounded-xl font-bold text-white focus:outline-none focus:border-emerald-500 transition disabled:opacity-40 disabled:bg-slate-900"
                                                 value={palpites[jogo.id]?.fora || ''}
                                                 onChange={(e) => handleInputChange(jogo.id, 'fora', e.target.value)}
                                             />
                                         </div>
 
                                         {/* Time Fora */}
-                                        <div className="flex items-center space-x-3 w-[40%] justify-end text-right">
-                                            <span className="text-sm font-semibold text-gray-200 truncate">{jogo.time_fora}</span>
-                                            <span className="text-2xl filter drop-shadow-sm">{jogo.bandeira_fora}</span>
+                                        <div className="flex items-center space-x-2 w-[35%] justify-end text-right min-w-0">
+                                            <span className="text-[11px] sm:text-sm font-semibold text-gray-200 truncate block">
+                                                {jogo.time_fora}
+                                            </span>
+                                            <span className="text-xl sm:text-2xl">{jogo.bandeira_fora}</span>
                                         </div>
 
                                     </div>
