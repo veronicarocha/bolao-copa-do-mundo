@@ -66,7 +66,7 @@ const GRUPOS: Record<string, string[]> = {
   "Grupo A": ["Mexico", "Africa do Sul", "Coreia do Sul", "Republica Tcheca"],
   "Grupo B": ["Canada", "Bosnia e Herzegovina", "Catar", "Suiça"],
   "Grupo C": ["Brasil", "Marrocos", "Haiti", "Escocia"],
-  "Grupo D": ["EUA", "Paraguai", "Australia", "Turquia"],
+  "Grupo D": ["Estados Unidos", "Paraguai", "Australia", "Turquia"],
   "Grupo E": ["Alemanha", "Curaçau", "Costa do Marfim", "Equador"],
   "Grupo F": ["Holanda", "Japao", "Suecia", "Tunisia"],
   "Grupo G": ["Belgica", "Egito", "Ira", "Nova Zelandia"],
@@ -74,7 +74,7 @@ const GRUPOS: Record<string, string[]> = {
   "Grupo I": ["França", "Senegal", "Iraque", "Noruega"],
   "Grupo J": ["Argentina", "Argelia", "Austria", "Jordania"],
   "Grupo K": ["Portugal", "RD do Congo", "Uzbequistao", "Colombia"],
-  "Grupo L": ["Inglaterra", "Croacia", "Gana", "Panaa"]
+  "Grupo L": ["Inglaterra", "Croacia", "Gana", "Panama"]
 };
 
 const MAPA_FILTROS: Record<string, string[]> = {

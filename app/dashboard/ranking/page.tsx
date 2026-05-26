@@ -1,118 +1,138 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient'; 
 
-interface Jogador {
-    id: string;
-    nome: string;
-    pontos: number;
+interface Perfil {
+  id: string;
+  nome: string;
 }
 
-export default function Ranking() {
-    const [jogadores, setJogadores] = useState<Jogador[]>([]);
-    const [carregando, setCarregando] = useState(true);
+export default function PaginaParticipantes() {
+  const [perfis, setPerfis] = useState<Perfil[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
 
-    useEffect(() => {
-        async function buscarRanking() {
-            try {
-                const { data, error } = await supabase
-                    .from('perfis')
-                    .select('id, nome, pontos')
-                    .order('pontos', { ascending: false });
+  useEffect(() => {
+    async function buscarParticipantes() {
+      try {
+        const { data, error } = await supabase
+          .from('perfis')
+          .select('id, nome')
+          .order('nome', { ascending: true });
 
-                if (error) throw error;
-                setJogadores(data || []);
-            } catch (err) {
-                console.error('Erro ao buscar ranking:', err);
-            } finally {
-                setCarregando(false);
-            }
-        }
-        buscarRanking();
-    }, []);
+        if (error) throw error;
+        
+        setPerfis(data || []);
+      } catch (err) {
+        console.error("Erro ao carregar participantes:", err);
+        setErro(true);
+      } finally {
+        setCarregando(false);
+      }
+    }
 
-    if (carregando) return <div className="p-8 text-center text-gray-400 font-mono">Carregando classificação...</div>;
+    buscarParticipantes();
+  }, []);
 
+  // Função para lidar com o clique dos curiosos
+  const lidarComCuriosidade = () => {
+    alert('Ainda não curioso(a)...  mas verá em breve : )');
+  };
+
+  if (carregando) {
     return (
-        <div className="p-6 max-w-4xl mx-auto text-white">
-            <div className="text-center mb-8">
-                <h1 className="text-4xl font-black text-amber-400 tracking-tight drop-shadow-lg mb-2">🏆 Ranking Oficial</h1>
-                
-                {/* BARRA DE PREMIAÇÃO */}
-                <div className="inline-flex flex-wrap justify-center gap-3 bg-emerald-950/40 border border-emerald-500/20 px-6 py-3 rounded-full text-sm font-bold text-emerald-400 shadow-lg">
-                    <span>💰 Prêmios:</span>
-                    <span>🥇 1º (65%)</span>
-                    <span className="text-gray-500">·</span>
-                    <span className="text-gray-300">🥈 2º (20%)</span>
-                    <span className="text-gray-500">·</span>
-                    <span className="text-orange-400">🥉 3º (10%)</span>
-                    <span className="text-gray-500">·</span>
-                    <span className="text-blue-400">🏅 4º (5%)</span>
-                </div>
-            </div>
-
-            <div className="bg-slate-950 rounded-3xl shadow-2xl border border-white/10 overflow-hidden">
-                <div className="grid grid-cols-12 gap-4 bg-black/50 p-4 border-b border-white/10 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    <div className="col-span-2 text-center">Posição</div>
-                    <div className="col-span-8">Participante</div>
-                    <div className="col-span-2 text-right pr-4">Pontos</div>
-                </div>
-
-                <div className="divide-y divide-white/5">
-                    {jogadores.map((jogador, index) => {
-                        let corPosicao = "text-gray-500 font-medium";
-                        let bgLinha = "hover:bg-white/5";
-                        let icone = `${index + 1}º`;
-                        let nomeDestaque = "text-gray-300";
-
-                        if (index === 0) {
-                            corPosicao = "text-amber-400 font-black text-xl";
-                            bgLinha = "bg-gradient-to-r from-amber-500/10 to-transparent";
-                            nomeDestaque = "text-white font-black";
-                            icone = "🥇";
-                        } else if (index === 1) {
-                            corPosicao = "text-gray-300 font-black text-xl";
-                            bgLinha = "bg-gradient-to-r from-gray-400/10 to-transparent";
-                            nomeDestaque = "text-white font-black";
-                            icone = "🥈";
-                        } else if (index === 2) {
-                            corPosicao = "text-orange-400 font-black text-xl";
-                            bgLinha = "bg-gradient-to-r from-orange-500/10 to-transparent";
-                            nomeDestaque = "text-white font-black";
-                            icone = "🥉";
-                        } else if (index === 3) {
-                            corPosicao = "text-blue-400 font-black text-xl";
-                            bgLinha = "bg-gradient-to-r from-blue-500/10 to-transparent";
-                            nomeDestaque = "text-white font-bold";
-                            icone = "🏅";
-                        }
-
-                        return (
-                            <div key={jogador.id} className={`grid grid-cols-12 gap-4 p-4 items-center transition ${bgLinha}`}>
-                                <div className={`col-span-2 text-center ${corPosicao}`}>
-                                    {icone}
-                                </div>
-                                <div className="col-span-8">
-                                    <span className={nomeDestaque}>
-                                        {jogador.nome || 'Usuário sem nome'}
-                                    </span>
-                                </div>
-                                <div className="col-span-2 text-right pr-4">
-                                    <span className="font-black text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-lg">
-                                        {jogador.pontos || 0}
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })}
-
-                    {jogadores.length === 0 && (
-                        <div className="p-8 text-center text-gray-500">
-                            Nenhum participante encontrado ainda.
-                        </div>
-                    )}
-                </div>
-            </div>
+      <div className="min-h-screen w-full bg-slate-900 flex items-center justify-center">
+        <div className="p-8 text-center text-gray-400 font-mono animate-pulse">
+          Buscando lista de participantes...
         </div>
+      </div>
     );
+  }
+
+  if (erro) {
+    return (
+      <div className="min-h-screen w-full bg-slate-900 flex items-center justify-center text-red-400 font-mono">
+        Erro ao carregar a lista de participantes.
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-slate-900 p-6 md:p-12 text-white">
+      <div className="max-w-4xl mx-auto space-y-8">
+        
+        {/* Cabeçalho */}
+        <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">Ranking & Participantes</h1>
+            <p className="text-sm text-gray-400 mt-2">
+              A bola ainda não rolou! Confira quem já garantiu a vaga no bolão.
+            </p>
+          </div>
+          <div className="bg-black/30 border border-white/5 px-4 py-2 rounded-xl text-center">
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Total de Inscritos</p>
+            <p className="text-2xl font-black text-emerald-400">{perfis.length}</p>
+          </div>
+        </div>
+
+        {/* Tabela de Participantes */}
+        <div className="bg-slate-950 rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="bg-white/5 text-xs uppercase tracking-wider text-gray-400 border-b border-white/10">
+                  <th className="p-4 font-semibold w-24 text-center">Posição</th>
+                  <th className="p-4 font-semibold">Participante</th>
+                  <th className="p-4 font-semibold text-center w-32">Pontos</th>
+                  <th className="p-4 font-semibold text-center w-40">Palpites</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {perfis.map((p, index) => (
+                  <tr key={p.id} className="hover:bg-white/5 transition group">
+                    
+                    {/* Posição */}
+                    <td className="p-4 font-mono text-gray-500 text-center">
+                      {index + 1}º
+                    </td>
+                    
+                    {/* Nome do Participante */}
+                    <td className="p-4 font-bold text-gray-200">
+                      {p.nome || 'Participante sem nome'}
+                    </td>
+                    
+                    {/* Pontos */}
+                    <td className="p-4 text-center font-black text-emerald-500/40">
+                      0 <span className="text-[10px] text-emerald-600/50 uppercase">pts</span>
+                    </td>
+                    
+                    {/* Ação: Botão com Alerta */}
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={lidarComCuriosidade}
+                        className="inline-block text-[11px] font-bold text-blue-400 hover:text-blue-300 border border-blue-500/30 px-3 py-2 rounded-lg hover:bg-blue-500/10 transition active:scale-95 cursor-pointer outline-none"
+                      >
+                        🔍 Ver Palpites
+                      </button>
+                    </td>
+
+                  </tr>
+                ))}
+
+                {/* Empty State */}
+                {perfis.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-12 text-center text-gray-500 font-mono text-sm">
+                      Nenhum participante encontrado na base de dados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
 }
