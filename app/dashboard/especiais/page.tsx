@@ -4,9 +4,6 @@ import { supabase } from '@/lib/supabaseClient';
 import { useMercado } from '@/lib/useMercado'; // <-- Importando o Hook
 
 const PERGUNTAS_ESPECIAIS = [
-  { id: 'campeao', label: '🥇 1º Colocado (Grande Campeão):', pts: 70, placeholder: 'Ex: Brasil' },
-  { id: 'vice', label: '🥈 2º Colocado (Vice-Campeão):', pts: 35, placeholder: 'Ex: França' },
-  { id: 'terceiro', label: '🥉 3º Colocado:', pts: 20, placeholder: 'Ex: Argentina' },
   { id: 'artilheiro_geral', label: '⚽ Artilheiro da Copa:', pts: 40, placeholder: 'Nome do jogador' },
   { id: 'craque_copa', label: '👑 Craque da Copa (Bola de Ouro):', pts: 40, placeholder: 'Nome do jogador' },
   { id: 'melhor_goleiro', label: '🧤 Melhor Goleiro (Luva de Ouro):', pts: 40, placeholder: 'Nome do jogador' },
