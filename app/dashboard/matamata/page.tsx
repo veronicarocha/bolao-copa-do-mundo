@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useMercado } from '@/lib/useMercado'; // <-- Hook importado
+import { useMercado } from '@/lib/useMercado';
 
 // 1. TIPAGEM FORTE
 type MatchId = string;
@@ -61,23 +61,47 @@ const SEMIS = [
   { id: 'J102', label: 'Match 102', req1: 'J99', req2: 'J100' }
 ];
 
-const SELECOES_COPA = [
-  "México", "Africa do Sul", "Coreia do Sul", "Tchéquia", 
-  "Canadá", "Bósnia e Herzegovina", "Catar", "Suíça", 
-  "Brasil", "Marrocos", "Haiti", "Escócia", 
-  "EUA", "Paraguai", "Austrália", "Turquia", 
-  "Alemanha", "Curaçau", "Costa do Marfim", "Equador", 
-  "Holanda", "Japão", "Suécia", "Tunísia", 
-  "Bélgica", "Egito", "Irã", "Nova Zelândia", 
-  "Espanha", "Cabo Verde", "Arábia Saudita", "Uruguai", 
-  "França", "Senegal", "Iraque", "Noruega", 
-  "Argentina", "Argélia", "Austria", "Jordânia", 
-  "Portugal", "RD do Congo", "Uzbequistão", "Colômbia", 
-  "Inglaterra", "Croácia", "Gana", "Panamá"
-].sort();
+// --- 4. MAPA DE GRUPOS E FILTROS ---
+const GRUPOS: Record<string, string[]> = {
+  "Grupo A": ["Mexico", "Africa do Sul", "Coreia do Sul", "Republica Tcheca"],
+  "Grupo B": ["Canada", "Bosnia e Herzegovina", "Catar", "Suiça"],
+  "Grupo C": ["Brasil", "Marrocos", "Haiti", "Escocia"],
+  "Grupo D": ["EUA", "Paraguai", "Australia", "Turquia"],
+  "Grupo E": ["Alemanha", "Curaçau", "Costa do Marfim", "Equador"],
+  "Grupo F": ["Holanda", "Japao", "Suecia", "Tunisia"],
+  "Grupo G": ["Belgica", "Egito", "Ira", "Nova Zelandia"],
+  "Grupo H": ["Espanha", "Cabo Verde", "Arábia Saudita", "Uruguai"],
+  "Grupo I": ["França", "Senegal", "Iraque", "Noruega"],
+  "Grupo J": ["Argentina", "Argelia", "Austria", "Jordania"],
+  "Grupo K": ["Portugal", "RD do Congo", "Uzbequistao", "Colombia"],
+  "Grupo L": ["Inglaterra", "Croacia", "Gana", "Panaa"]
+};
+
+const MAPA_FILTROS: Record<string, string[]> = {
+  "Melhor 3º (A/B/C/D/F)": [...GRUPOS["Grupo A"], ...GRUPOS["Grupo B"], ...GRUPOS["Grupo C"], ...GRUPOS["Grupo D"], ...GRUPOS["Grupo F"]].sort(),
+  "Melhor 3º (C/D/F/G/H)": [...GRUPOS["Grupo C"], ...GRUPOS["Grupo D"], ...GRUPOS["Grupo F"], ...GRUPOS["Grupo G"], ...GRUPOS["Grupo H"]].sort(),
+  "Melhor 3º (B/E/F/I/J)": [...GRUPOS["Grupo B"], ...GRUPOS["Grupo E"], ...GRUPOS["Grupo F"], ...GRUPOS["Grupo I"], ...GRUPOS["Grupo J"]].sort(),
+  "Melhor 3º (A/E/H/I/J)": [...GRUPOS["Grupo A"], ...GRUPOS["Grupo E"], ...GRUPOS["Grupo H"], ...GRUPOS["Grupo I"], ...GRUPOS["Grupo J"]].sort(),
+  "Melhor 3º (C/E/F/H/I)": [...GRUPOS["Grupo C"], ...GRUPOS["Grupo E"], ...GRUPOS["Grupo F"], ...GRUPOS["Grupo H"], ...GRUPOS["Grupo I"]].sort(),
+  "Melhor 3º (E/H/I/J/K)": [...GRUPOS["Grupo E"], ...GRUPOS["Grupo H"], ...GRUPOS["Grupo I"], ...GRUPOS["Grupo J"], ...GRUPOS["Grupo K"]].sort(),
+  "Melhor 3º (E/F/G/I/J)": [...GRUPOS["Grupo E"], ...GRUPOS["Grupo F"], ...GRUPOS["Grupo G"], ...GRUPOS["Grupo I"], ...GRUPOS["Grupo J"]].sort(),
+  "Melhor 3º (D/E/I/J/L)": [...GRUPOS["Grupo D"], ...GRUPOS["Grupo E"], ...GRUPOS["Grupo I"], ...GRUPOS["Grupo J"], ...GRUPOS["Grupo L"]].sort(),
+  "1º Lugar Grupo A": GRUPOS["Grupo A"].sort(), "2º Lugar Grupo A": GRUPOS["Grupo A"].sort(),
+  "1º Lugar Grupo B": GRUPOS["Grupo B"].sort(), "2º Lugar Grupo B": GRUPOS["Grupo B"].sort(),
+  "1º Lugar Grupo C": GRUPOS["Grupo C"].sort(), "2º Lugar Grupo C": GRUPOS["Grupo C"].sort(),
+  "1º Lugar Grupo D": GRUPOS["Grupo D"].sort(), "2º Lugar Grupo D": GRUPOS["Grupo D"].sort(),
+  "1º Lugar Grupo E": GRUPOS["Grupo E"].sort(), "2º Lugar Grupo E": GRUPOS["Grupo E"].sort(),
+  "1º Lugar Grupo F": GRUPOS["Grupo F"].sort(), "2º Lugar Grupo F": GRUPOS["Grupo F"].sort(),
+  "1º Lugar Grupo G": GRUPOS["Grupo G"].sort(), "2º Lugar Grupo G": GRUPOS["Grupo G"].sort(),
+  "1º Lugar Grupo H": GRUPOS["Grupo H"].sort(), "2º Lugar Grupo H": GRUPOS["Grupo H"].sort(),
+  "1º Lugar Grupo I": GRUPOS["Grupo I"].sort(), "2º Lugar Grupo I": GRUPOS["Grupo I"].sort(),
+  "1º Lugar Grupo J": GRUPOS["Grupo J"].sort(), "2º Lugar Grupo J": GRUPOS["Grupo J"].sort(),
+  "1º Lugar Grupo K": GRUPOS["Grupo K"].sort(), "2º Lugar Grupo K": GRUPOS["Grupo K"].sort(),
+  "1º Lugar Grupo L": GRUPOS["Grupo L"].sort(), "2º Lugar Grupo L": GRUPOS["Grupo L"].sort(),
+};
 
 export default function PalpitesMataMata() {
-  const { apenasLeitura, carregandoMercado } = useMercado(); // <-- Consumindo o Hook
+  const { apenasLeitura, carregandoMercado } = useMercado();
 
   const [carregandoDados, setCarregandoDados] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -102,7 +126,6 @@ export default function PalpitesMataMata() {
     carregarDados();
   }, []);
 
-  // OTIMIZAÇÃO: Cache das seleções globais para não pesar no re-render de 32 inputs
   const selecoesEscolhidasGlobais = useMemo(() => {
     return Object.entries(palpites)
       .filter(([k]) => k.includes('_1') || k.includes('_2'))
@@ -116,11 +139,9 @@ export default function PalpitesMataMata() {
     setPalpites(prev => {
       const novo = { ...prev, [vagaId]: selecao };
       
-      // MOTOR RECURSIVO DE LIMPEZA (Se a base muda, os ramos inválidos morrem)
       let nodeAtual = vagaId;
       let valorAntigo = prev[vagaId];
 
-      // Se mudou o input primário (ex: J74_1), a limpeza começa verificando o vencedor de J74
       if (nodeAtual.includes('_')) {
         const matchBase = nodeAtual.split('_')[0];
         if (novo[matchBase] === valorAntigo && valorAntigo !== '') {
@@ -128,22 +149,20 @@ export default function PalpitesMataMata() {
           valorAntigo = prev[matchBase];
           nodeAtual = matchBase;
         } else {
-          valorAntigo = ''; // Sem impacto na frente
+          valorAntigo = ''; 
         }
       }
 
-      // Propaga a morte do galho pela árvore binária usando o Grafo Declarativo
       while (DEPENDENCIAS[nodeAtual] && valorAntigo) {
         const proximoNode = DEPENDENCIAS[nodeAtual];
         if (novo[proximoNode] === valorAntigo) {
-          novo[proximoNode] = ''; // Limpa o futuro incompatível
+          novo[proximoNode] = '';
           nodeAtual = proximoNode;
         } else {
-          break; // O time antigo não tinha chegado aqui, pode parar
+          break; 
         }
       }
 
-      // Limpeza especial forçada para a Disputa de 3º se a Semifinal for alterada
       if (vagaId.includes('J101') || vagaId.includes('J102') || vagaId.includes('J97') || vagaId.includes('J98') || vagaId.includes('J99') || vagaId.includes('J100')) {
          novo['J103'] = '';
       }
@@ -167,7 +186,6 @@ export default function PalpitesMataMata() {
       return;
     }
 
-    // Salva o modelo relacional atual (Futuro step: migrar para JSONB)
     const inserts = Object.entries(palpites)
       .filter(([_, selecao]) => selecao !== '')
       .map(([vagaId, selecao]) => ({ user_id: user.id, fase_vaga: vagaId, selecao_escolhida: selecao }));
@@ -176,7 +194,6 @@ export default function PalpitesMataMata() {
     
     setSalvando(false);
 
-    // Tratamento de erro RLS (Mesmo da página de grupos)
     if (error) {
       if (error.code === '42501') {
         alert('Acesso negado: O mercado foi fechado e não é mais possível alterar palpites.');
@@ -188,7 +205,6 @@ export default function PalpitesMataMata() {
     }
   };
 
-  // --- MÉTODOS DE EXTRAÇÃO SEGUROS ---
   const obterVencedor = (matchId: MatchId) => palpites[matchId] || '';
   
   const obterPerdedor = (matchId: MatchId, req1: MatchId, req2: MatchId) => {
@@ -197,14 +213,16 @@ export default function PalpitesMataMata() {
     const vencedor = obterVencedor(matchId);
     
     if (!t1 || !t2 || !vencedor) return '';
-    if (vencedor !== t1 && vencedor !== t2) return ''; // Proteção contra falhas silenciosas
+    if (vencedor !== t1 && vencedor !== t2) return ''; 
     
     return vencedor === t1 ? t2 : t1;
   };
 
-  const getOpcoesDisponiveis = (currentValue: string, oponenteValue: string) => {
-    return SELECOES_COPA.map(s => {
-      // Bloqueia se o time já foi selecionado em OUTRO slot inicial, ou se é o OPONENTE atual
+  const getOpcoesFiltradas = (label: string, currentValue: string, oponenteValue: string) => {
+    // Busca a lista filtrada no mapa, se não achar retorna todos os times (fallback de segurança)
+    const listaPermitida = MAPA_FILTROS[label] || Object.values(GRUPOS).flat().sort();
+    
+    return listaPermitida.map(s => {
       const isIndisponivel = (selecoesEscolhidasGlobais.includes(s) && s !== currentValue) || (s === oponenteValue && s !== '');
       return (
         <option key={s} value={s} disabled={isIndisponivel}>
@@ -214,7 +232,6 @@ export default function PalpitesMataMata() {
     });
   };
 
-  // --- COMPONENTES DECLARATIVOS ---
   const renderFaseEncadeada = (fase: typeof OITAVAS, titulo: string, cor: string, margin: string) => (
     <div className={`w-72 space-y-12 flex-shrink-0 ${margin}`}>
       <h3 className={`text-xs font-black uppercase tracking-wider text-center border-b border-white/5 pb-2 ${cor}`}>
@@ -248,137 +265,140 @@ export default function PalpitesMataMata() {
     </div>
   );
 
-  // Considera o loading tanto dos dados locais quanto do Hook global
-  if (carregandoDados || carregandoMercado) return <div className="p-8 text-center text-gray-400 font-mono animate-pulse">Montando chaves da Copa...</div>;
+  if (carregandoDados || carregandoMercado) return <div className="min-h-screen w-full bg-slate-900 flex items-center justify-center"><div className="p-8 text-center text-gray-400 font-mono animate-pulse">Montando chaves da Copa...</div></div>;
 
   const terceiro1 = obterPerdedor('J101', 'J97', 'J98');
   const terceiro2 = obterPerdedor('J102', 'J99', 'J100');
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto text-white">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-white/10 pb-6">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">Chaveamento Mata-Mata</h1>
-          <p className="text-sm text-amber-400 font-semibold mt-1">⏰ Data limite: 09 de Junho de 2026.</p>
-        </div>
-        <button
-          onClick={salvarMataMata}
-          disabled={apenasLeitura || salvando}
-          className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold shadow-lg transition active:scale-95 disabled:opacity-50"
-        >
-          {salvando ? 'Salvando...' : apenasLeitura ? '🔒 Mercado Fechado' : '💾 Salvar Chaveamento'}
-        </button>
-      </div>
-
-      <div className="flex flex-row gap-6 overflow-x-auto pb-8 justify-between items-start min-w-[1200px] custom-scrollbar">
+    // Aplicado min-h-screen e bg-slate-900 para garantir que o mobile pinte tudo
+    <div className="min-h-screen w-full bg-slate-900">
+      <div className="p-6 max-w-[1600px] mx-auto text-white">
         
-        {/* COLUNA 1: 32 AVOS DE FINAL */}
-        <div className="w-72 space-y-6 flex-shrink-0">
-          <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider text-center border-b border-white/5 pb-2">
-            Fase 32 Avos (Round of 32)
-          </h3>
-          {DEZESSEIS_AVOS.map((c) => {
-            const val1 = palpites[`${c.id}_1`] || '';
-            const val2 = palpites[`${c.id}_2`] || '';
-            return (
-              <div key={c.id} className="bg-slate-950 p-3.5 rounded-xl border border-white/5 space-y-2 shadow-xl hover:border-white/10 transition">
-                <span className="text-[10px] text-emerald-500 font-bold block uppercase">{c.label} | {c.id}</span>
-                <div>
-                  <label className="text-[9px] text-gray-500 block mb-1">{c.de1}</label>
-                  <select
-                    disabled={apenasLeitura}
-                    value={val1}
-                    onChange={(e) => handleSelectChange(`${c.id}_1`, e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs font-semibold outline-none focus:border-emerald-500"
-                  >
-                    <option value="">-- Vaga 1 --</option>
-                    {getOpcoesDisponiveis(val1, val2)}
-                  </select>
-                </div>
-                <div className="text-center text-[10px] text-gray-700 font-black">VS</div>
-                <div>
-                  <label className="text-[9px] text-gray-500 block mb-1">{c.de2}</label>
-                  <select
-                    disabled={apenasLeitura}
-                    value={val2}
-                    onChange={(e) => handleSelectChange(`${c.id}_2`, e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs font-semibold outline-none focus:border-emerald-500"
-                  >
-                    <option value="">-- Vaga 2 --</option>
-                    {getOpcoesDisponiveis(val2, val1)}
-                  </select>
-                </div>
-                <div className="pt-2 border-t border-white/5">
-                  <select
-                    disabled={apenasLeitura || !val1 || !val2}
-                    value={palpites[c.id] || ''}
-                    onChange={(e) => handleSelectChange(c.id, e.target.value)}
-                    className="w-full bg-emerald-950/30 border border-emerald-500/20 text-emerald-400 rounded-lg p-2 text-xs font-bold outline-none focus:border-emerald-500 disabled:opacity-30 disabled:bg-transparent"
-                  >
-                    <option value="">-- Qual seleção avança? --</option>
-                    {val1 && <option value={val1}>{val1}</option>}
-                    {val2 && <option value={val2} disabled={val1 === val2}>{val2}</option>}
-                  </select>
-                </div>
-              </div>
-            );
-          })}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-white/10 pb-6">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">Chaveamento Mata-Mata</h1>
+            <p className="text-sm text-amber-400 font-semibold mt-1">⏰ Data limite: 09 de Junho de 2026.</p>
+          </div>
+          <button
+            onClick={salvarMataMata}
+            disabled={apenasLeitura || salvando}
+            className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold shadow-lg transition active:scale-95 disabled:opacity-50"
+          >
+            {salvando ? 'Salvando...' : apenasLeitura ? '🔒 Mercado Fechado' : '💾 Salvar Chaveamento'}
+          </button>
         </div>
 
-        {/* COLUNAS DECLARATIVAS */}
-        {renderFaseEncadeada(OITAVAS, 'Oitavas de Final', 'text-blue-400', 'pt-16')}
-        {renderFaseEncadeada(QUARTAS, 'Quartas de Final', 'text-purple-400', 'pt-32')}
-        {renderFaseEncadeada(SEMIS, 'Semifinais', 'text-pink-400', 'pt-56')}
-
-        {/* COLUNA FINAL */}
-        <div className="w-72 space-y-12 flex-shrink-0 pt-48">
-          <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider text-center border-b border-white/5 pb-2">Finais</h3>
+        <div className="flex flex-row gap-6 overflow-x-auto pb-8 justify-between items-start min-w-[1200px] custom-scrollbar">
           
-          <div className="bg-slate-950 p-4 rounded-xl border border-orange-500/20 space-y-3 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-2 opacity-10 text-2xl">🥉</div>
-            <span className="text-[10px] text-orange-400 font-black block uppercase tracking-widest text-center">Disputa de 3º Lugar</span>
-            <div className={`p-2.5 rounded border text-xs text-center ${terceiro1 ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
-              {terceiro1 || '⚡ Perdedor J101'}
-            </div>
-            <div className="text-center text-xs text-gray-700 font-black">VS</div>
-            <div className={`p-2.5 rounded border text-xs text-center ${terceiro2 ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
-              {terceiro2 || '⚡ Perdedor J102'}
-            </div>
-            <select
-              disabled={apenasLeitura || !terceiro1 || !terceiro2}
-              value={palpites['J103'] || ''}
-              onChange={(e) => handleSelectChange('J103', e.target.value)}
-              className="w-full bg-orange-950/40 border border-orange-500/30 text-orange-400 rounded-lg p-2 text-xs font-bold outline-none focus:border-orange-500 disabled:opacity-30 disabled:bg-transparent"
-            >
-              <option value="">-- Medalhista de Bronze --</option>
-              {terceiro1 && <option value={terceiro1}>{terceiro1}</option>}
-              {terceiro2 && <option value={terceiro2} disabled={terceiro1 === terceiro2}>{terceiro2}</option>}
-            </select>
+          {/* COLUNA 1: 32 AVOS DE FINAL */}
+          <div className="w-72 space-y-6 flex-shrink-0">
+            <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider text-center border-b border-white/5 pb-2">
+              Fase 32 Avos (Round of 32)
+            </h3>
+            {DEZESSEIS_AVOS.map((c) => {
+              const val1 = palpites[`${c.id}_1`] || '';
+              const val2 = palpites[`${c.id}_2`] || '';
+              return (
+                <div key={c.id} className="bg-slate-950 p-3.5 rounded-xl border border-white/5 space-y-2 shadow-xl hover:border-white/10 transition">
+                  <span className="text-[10px] text-emerald-500 font-bold block uppercase">{c.label} | {c.id}</span>
+                  <div>
+                    <label className="text-[9px] text-gray-500 block mb-1">{c.de1}</label>
+                    <select
+                      disabled={apenasLeitura}
+                      value={val1}
+                      onChange={(e) => handleSelectChange(`${c.id}_1`, e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs font-semibold outline-none focus:border-emerald-500"
+                    >
+                      <option value="">-- Vaga 1 --</option>
+                      {getOpcoesFiltradas(c.de1, val1, val2)}
+                    </select>
+                  </div>
+                  <div className="text-center text-[10px] text-gray-700 font-black">VS</div>
+                  <div>
+                    <label className="text-[9px] text-gray-500 block mb-1">{c.de2}</label>
+                    <select
+                      disabled={apenasLeitura}
+                      value={val2}
+                      onChange={(e) => handleSelectChange(`${c.id}_2`, e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs font-semibold outline-none focus:border-emerald-500"
+                    >
+                      <option value="">-- Vaga 2 --</option>
+                      {getOpcoesFiltradas(c.de2, val2, val1)}
+                    </select>
+                  </div>
+                  <div className="pt-2 border-t border-white/5">
+                    <select
+                      disabled={apenasLeitura || !val1 || !val2}
+                      value={palpites[c.id] || ''}
+                      onChange={(e) => handleSelectChange(c.id, e.target.value)}
+                      className="w-full bg-emerald-950/30 border border-emerald-500/20 text-emerald-400 rounded-lg p-2 text-xs font-bold outline-none focus:border-emerald-500 disabled:opacity-30 disabled:bg-transparent"
+                    >
+                      <option value="">-- Qual seleção avança? --</option>
+                      {val1 && <option value={val1}>{val1}</option>}
+                      {val2 && <option value={val2} disabled={val1 === val2}>{val2}</option>}
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30 space-y-3 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-2 opacity-10 text-2xl">🏆</div>
-            <span className="text-[10px] text-amber-400 font-black block uppercase tracking-widest text-center">Grande Final</span>
-            <div className={`p-2.5 rounded border text-xs text-center ${obterVencedor('J101') ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
-              {obterVencedor('J101') || '⚡ Vencedor J101'}
+          {/* COLUNAS DECLARATIVAS */}
+          {renderFaseEncadeada(OITAVAS, 'Oitavas de Final', 'text-blue-400', 'pt-16')}
+          {renderFaseEncadeada(QUARTAS, 'Quartas de Final', 'text-purple-400', 'pt-32')}
+          {renderFaseEncadeada(SEMIS, 'Semifinais', 'text-pink-400', 'pt-56')}
+
+          {/* COLUNA FINAL */}
+          <div className="w-72 space-y-12 flex-shrink-0 pt-48">
+            <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider text-center border-b border-white/5 pb-2">Finais</h3>
+            
+            <div className="bg-slate-950 p-4 rounded-xl border border-orange-500/20 space-y-3 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-2 opacity-10 text-2xl">🥉</div>
+              <span className="text-[10px] text-orange-400 font-black block uppercase tracking-widest text-center">Disputa de 3º Lugar</span>
+              <div className={`p-2.5 rounded border text-xs text-center ${terceiro1 ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
+                {terceiro1 || '⚡ Perdedor J101'}
+              </div>
+              <div className="text-center text-xs text-gray-700 font-black">VS</div>
+              <div className={`p-2.5 rounded border text-xs text-center ${terceiro2 ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
+                {terceiro2 || '⚡ Perdedor J102'}
+              </div>
+              <select
+                disabled={apenasLeitura || !terceiro1 || !terceiro2}
+                value={palpites['J103'] || ''}
+                onChange={(e) => handleSelectChange('J103', e.target.value)}
+                className="w-full bg-orange-950/40 border border-orange-500/30 text-orange-400 rounded-lg p-2 text-xs font-bold outline-none focus:border-orange-500 disabled:opacity-30 disabled:bg-transparent"
+              >
+                <option value="">-- Medalhista de Bronze --</option>
+                {terceiro1 && <option value={terceiro1}>{terceiro1}</option>}
+                {terceiro2 && <option value={terceiro2} disabled={terceiro1 === terceiro2}>{terceiro2}</option>}
+              </select>
             </div>
-            <div className="text-center text-xs text-gray-700 font-black">VS</div>
-            <div className={`p-2.5 rounded border text-xs text-center ${obterVencedor('J102') ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
-              {obterVencedor('J102') || '⚡ Vencedor J102'}
+
+            <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30 space-y-3 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-2 opacity-10 text-2xl">🏆</div>
+              <span className="text-[10px] text-amber-400 font-black block uppercase tracking-widest text-center">Grande Final</span>
+              <div className={`p-2.5 rounded border text-xs text-center ${obterVencedor('J101') ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
+                {obterVencedor('J101') || '⚡ Vencedor J101'}
+              </div>
+              <div className="text-center text-xs text-gray-700 font-black">VS</div>
+              <div className={`p-2.5 rounded border text-xs text-center ${obterVencedor('J102') ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
+                {obterVencedor('J102') || '⚡ Vencedor J102'}
+              </div>
+              <select
+                disabled={apenasLeitura || !obterVencedor('J101') || !obterVencedor('J102')}
+                value={palpites['J104'] || ''}
+                onChange={(e) => handleSelectChange('J104', e.target.value)}
+                className="w-full bg-amber-500 text-black rounded-lg p-2.5 text-xs font-black outline-none tracking-wide uppercase shadow-lg disabled:opacity-30"
+              >
+                <option value="" className="text-white bg-slate-900 font-normal">-- CRAVE O CAMPEÃO --</option>
+                {obterVencedor('J101') && <option value={obterVencedor('J101')} className="text-white bg-slate-900">{obterVencedor('J101')}</option>}
+                {obterVencedor('J102') && <option value={obterVencedor('J102')} className="text-white bg-slate-900" disabled={obterVencedor('J101') === obterVencedor('J102')}>{obterVencedor('J102')}</option>}
+              </select>
             </div>
-            <select
-              disabled={apenasLeitura || !obterVencedor('J101') || !obterVencedor('J102')}
-              value={palpites['J104'] || ''}
-              onChange={(e) => handleSelectChange('J104', e.target.value)}
-              className="w-full bg-amber-500 text-black rounded-lg p-2.5 text-xs font-black outline-none tracking-wide uppercase shadow-lg disabled:opacity-30"
-            >
-              <option value="" className="text-white bg-slate-900 font-normal">-- CRAVE O CAMPEÃO --</option>
-              {obterVencedor('J101') && <option value={obterVencedor('J101')} className="text-white bg-slate-900">{obterVencedor('J101')}</option>}
-              {obterVencedor('J102') && <option value={obterVencedor('J102')} className="text-white bg-slate-900" disabled={obterVencedor('J101') === obterVencedor('J102')}>{obterVencedor('J102')}</option>}
-            </select>
           </div>
+
         </div>
-
       </div>
     </div>
   );
