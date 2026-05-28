@@ -417,10 +417,10 @@ export default function PalpitesMataMata() {
         <button
           onClick={salvarMataMata}
           disabled={apenasLeitura || salvando}
-          className="flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-3 rounded-full shadow-[0_4px_20px_rgba(16,185,129,0.5)] border border-emerald-400/20 font-bold text-xs tracking-wide transition active:scale-95 disabled:opacity-40 cursor-pointer"
+          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-5 rounded-lg shadow-[0_4px_10px_rgba(16,185,129,0.5)] border border-emerald-400/20 font-bold text-xs tracking-wide transition active:scale-95 disabled:opacity-40 cursor-pointer"
         >
           <span className="text-sm">💾</span>
-          {salvando ? 'Salvando...' : 'Salvar'}
+          {salvando ? 'Salvando...' : 'Salvar Palpites'}
         </button>
       </div>
 
