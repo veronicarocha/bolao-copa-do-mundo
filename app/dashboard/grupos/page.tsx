@@ -209,7 +209,24 @@ export default function PalpitesGrupos() {
                         </div>
                     ))}
                 </div>
+
+                
             )}
+
+            {/* BOTÃO FLUTUANTE DISCRETO: 
+        Alinhado à esquerda perfeitamente e imune ao scroll horizontal da tabela graças à correção acima.
+      */}
+      <div className="fixed bottom-6 left-6 z-[9999]">
+        <button
+          onClick={salvarPalpites}
+          disabled={apenasLeitura || salvando}
+          className="flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl shadow-[0_4px_20px_rgba(16,185,129,0.5)] border border-emerald-400/20 font-bold text-xs tracking-wide transition active:scale-95 disabled:opacity-40 cursor-pointer"
+        >
+          <span className="text-base">{salvando ? '⏳' : '💾'}</span>
+          <span>{salvando ? 'Salvando...' : 'Salvar'}</span>
+        </button>
+      </div>
+
         </div>
     );
 }

@@ -138,7 +138,7 @@ export default function PalpitesMataMata() {
 
     setPalpites(prev => {
       const novo = { ...prev, [vagaId]: selecao };
-      
+
       let nodeAtual = vagaId;
       let valorAntigo = prev[vagaId];
 
@@ -149,7 +149,7 @@ export default function PalpitesMataMata() {
           valorAntigo = prev[matchBase];
           nodeAtual = matchBase;
         } else {
-          valorAntigo = ''; 
+          valorAntigo = '';
         }
       }
 
@@ -159,12 +159,12 @@ export default function PalpitesMataMata() {
           novo[proximoNode] = '';
           nodeAtual = proximoNode;
         } else {
-          break; 
+          break;
         }
       }
 
       if (vagaId.includes('J101') || vagaId.includes('J102') || vagaId.includes('J97') || vagaId.includes('J98') || vagaId.includes('J99') || vagaId.includes('J100')) {
-         novo['J103'] = '';
+        novo['J103'] = '';
       }
 
       return novo;
@@ -179,7 +179,7 @@ export default function PalpitesMataMata() {
 
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       alert('Sessão expirada. Faça login novamente.');
       setSalvando(false);
@@ -191,7 +191,7 @@ export default function PalpitesMataMata() {
       .map(([vagaId, selecao]) => ({ user_id: user.id, fase_vaga: vagaId, selecao_escolhida: selecao }));
 
     const { error } = await supabase.from('palpites_matamata').upsert(inserts, { onConflict: 'user_id,fase_vaga' });
-    
+
     setSalvando(false);
 
     if (error) {
@@ -206,22 +206,21 @@ export default function PalpitesMataMata() {
   };
 
   const obterVencedor = (matchId: MatchId) => palpites[matchId] || '';
-  
+
   const obterPerdedor = (matchId: MatchId, req1: MatchId, req2: MatchId) => {
     const t1 = obterVencedor(req1);
     const t2 = obterVencedor(req2);
     const vencedor = obterVencedor(matchId);
-    
+
     if (!t1 || !t2 || !vencedor) return '';
-    if (vencedor !== t1 && vencedor !== t2) return ''; 
-    
+    if (vencedor !== t1 && vencedor !== t2) return '';
+
     return vencedor === t1 ? t2 : t1;
   };
 
   const getOpcoesFiltradas = (label: string, currentValue: string, oponenteValue: string) => {
-    // Busca a lista filtrada no mapa, se não achar retorna todos os times (fallback de segurança)
     const listaPermitida = MAPA_FILTROS[label] || Object.values(GRUPOS).flat().sort();
-    
+
     return listaPermitida.map(s => {
       const isIndisponivel = (selecoesEscolhidasGlobais.includes(s) && s !== currentValue) || (s === oponenteValue && s !== '');
       return (
@@ -265,16 +264,23 @@ export default function PalpitesMataMata() {
     </div>
   );
 
-  if (carregandoDados || carregandoMercado) return <div className="min-h-screen w-full bg-slate-900 flex items-center justify-center"><div className="p-8 text-center text-gray-400 font-mono animate-pulse">Montando chaves da Copa...</div></div>;
+  if (carregandoDados || carregandoMercado) {
+    return (
+      <div className="min-h-screen w-full bg-slate-900 flex items-center justify-center">
+        <div className="p-8 text-center text-gray-400 font-mono animate-pulse">Montando chaves da Copa...</div>
+      </div>
+    );
+  }
 
   const terceiro1 = obterPerdedor('J101', 'J97', 'J98');
   const terceiro2 = obterPerdedor('J102', 'J99', 'J100');
 
   return (
-    // Aplicado min-h-screen e bg-slate-900 para garantir que o mobile pinte tudo
-    <div className="min-h-screen w-full bg-slate-900">
-      <div className="p-6 max-w-[1600px] mx-auto text-white">
+    <div className="min-h-screen bg-slate-900 text-white">
+      
+      <div className="p-4 md:p-6 max-w-[1600px] mx-auto pb-24">
         
+        {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-white/10 pb-6">
           <div>
             <h1 className="text-3xl font-black tracking-tight">Chaveamento Mata-Mata</h1>
@@ -283,123 +289,141 @@ export default function PalpitesMataMata() {
           <button
             onClick={salvarMataMata}
             disabled={apenasLeitura || salvando}
-            className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold shadow-lg transition active:scale-95 disabled:opacity-50"
+            className="hidden md:block px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold shadow-lg transition active:scale-95 disabled:opacity-50"
           >
             {salvando ? 'Salvando...' : apenasLeitura ? '🔒 Mercado Fechado' : '💾 Salvar Chaveamento'}
           </button>
         </div>
 
-        <div className="flex flex-row gap-6 overflow-x-auto pb-8 justify-between items-start min-w-[1200px] custom-scrollbar">
-          
-          {/* COLUNA 1: 32 AVOS DE FINAL */}
-          <div className="w-72 space-y-6 flex-shrink-0">
-            <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider text-center border-b border-white/5 pb-2">
-              Fase 32 Avos (Round of 32)
-            </h3>
-            {DEZESSEIS_AVOS.map((c) => {
-              const val1 = palpites[`${c.id}_1`] || '';
-              const val2 = palpites[`${c.id}_2`] || '';
-              return (
-                <div key={c.id} className="bg-slate-950 p-3.5 rounded-xl border border-white/5 space-y-2 shadow-xl hover:border-white/10 transition">
-                  <span className="text-[10px] text-emerald-500 font-bold block uppercase">{c.label} | {c.id}</span>
-                  <div>
-                    <label className="text-[9px] text-gray-500 block mb-1">{c.de1}</label>
-                    <select
-                      disabled={apenasLeitura}
-                      value={val1}
-                      onChange={(e) => handleSelectChange(`${c.id}_1`, e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs font-semibold outline-none focus:border-emerald-500"
-                    >
-                      <option value="">-- Vaga 1 --</option>
-                      {getOpcoesFiltradas(c.de1, val1, val2)}
-                    </select>
+        {/* Zona de Scroll Horizontal */}
+        <div className="w-full overflow-x-auto custom-scrollbar pb-8">
+          <div className="flex flex-row gap-6 justify-between items-start min-w-[1200px] pr-8">
+
+            {/* COLUNA 1: 32 AVOS DE FINAL */}
+            <div className="w-72 space-y-6 flex-shrink-0">
+              <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider text-center border-b border-white/5 pb-2">
+                Fase 32 Avos (Round of 32)
+              </h3>
+              {DEZESSEIS_AVOS.map((c) => {
+                const val1 = palpites[`${c.id}_1`] || '';
+                const val2 = palpites[`${c.id}_2`] || '';
+                return (
+                  <div key={c.id} className="bg-slate-950 p-3.5 rounded-xl border border-white/5 space-y-2 shadow-xl hover:border-white/10 transition">
+                    <span className="text-[10px] text-emerald-500 font-bold block uppercase">{c.label} | {c.id}</span>
+                    <div>
+                      <label className="text-[9px] text-gray-500 block mb-1">{c.de1}</label>
+                      <select
+                        disabled={apenasLeitura}
+                        value={val1}
+                        onChange={(e) => handleSelectChange(`${c.id}_1`, e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs font-semibold outline-none focus:border-emerald-500"
+                      >
+                        <option value="">-- Vaga 1 --</option>
+                        {getOpcoesFiltradas(c.de1, val1, val2)}
+                      </select>
+                    </div>
+                    <div className="text-center text-[10px] text-gray-700 font-black">VS</div>
+                    <div>
+                      <label className="text-[9px] text-gray-500 block mb-1">{c.de2}</label>
+                      <select
+                        disabled={apenasLeitura}
+                        value={val2}
+                        onChange={(e) => handleSelectChange(`${c.id}_2`, e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs font-semibold outline-none focus:border-emerald-500"
+                      >
+                        <option value="">-- Vaga 2 --</option>
+                        {getOpcoesFiltradas(c.de2, val2, val1)}
+                      </select>
+                    </div>
+                    <div className="pt-2 border-t border-white/5">
+                      <select
+                        disabled={apenasLeitura || !val1 || !val2}
+                        value={palpites[c.id] || ''}
+                        onChange={(e) => handleSelectChange(c.id, e.target.value)}
+                        className="w-full bg-emerald-950/30 border border-emerald-500/20 text-emerald-400 rounded-lg p-2 text-xs font-bold outline-none focus:border-emerald-500 disabled:opacity-30 disabled:bg-transparent"
+                      >
+                        <option value="">-- Qual seleção avança? --</option>
+                        {val1 && <option value={val1}>{val1}</option>}
+                        {val2 && <option value={val2} disabled={val1 === val2}>{val2}</option>}
+                      </select>
+                    </div>
                   </div>
-                  <div className="text-center text-[10px] text-gray-700 font-black">VS</div>
-                  <div>
-                    <label className="text-[9px] text-gray-500 block mb-1">{c.de2}</label>
-                    <select
-                      disabled={apenasLeitura}
-                      value={val2}
-                      onChange={(e) => handleSelectChange(`${c.id}_2`, e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs font-semibold outline-none focus:border-emerald-500"
-                    >
-                      <option value="">-- Vaga 2 --</option>
-                      {getOpcoesFiltradas(c.de2, val2, val1)}
-                    </select>
-                  </div>
-                  <div className="pt-2 border-t border-white/5">
-                    <select
-                      disabled={apenasLeitura || !val1 || !val2}
-                      value={palpites[c.id] || ''}
-                      onChange={(e) => handleSelectChange(c.id, e.target.value)}
-                      className="w-full bg-emerald-950/30 border border-emerald-500/20 text-emerald-400 rounded-lg p-2 text-xs font-bold outline-none focus:border-emerald-500 disabled:opacity-30 disabled:bg-transparent"
-                    >
-                      <option value="">-- Qual seleção avança? --</option>
-                      {val1 && <option value={val1}>{val1}</option>}
-                      {val2 && <option value={val2} disabled={val1 === val2}>{val2}</option>}
-                    </select>
-                  </div>
+                );
+              })}
+            </div>
+
+            {/* COLUNAS DECLARATIVAS ENCADEADAS */}
+            {renderFaseEncadeada(OITAVAS, 'Oitavas de Final', 'text-blue-400', 'pt-16')}
+            {renderFaseEncadeada(QUARTAS, 'Quartas de Final', 'text-purple-400', 'pt-32')}
+            {renderFaseEncadeada(SEMIS, 'Semifinais', 'text-pink-400', 'pt-56')}
+
+            {/* COLUNA FINAL */}
+            <div className="w-72 space-y-12 flex-shrink-0 pt-48">
+              <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider text-center border-b border-white/5 pb-2">Finais</h3>
+
+              <div className="bg-slate-950 p-4 rounded-xl border border-orange-500/20 space-y-3 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 opacity-10 text-2xl">🥉</div>
+                <span className="text-[10px] text-orange-400 font-black block uppercase tracking-widest text-center">Disputa de 3º Lugar</span>
+                <div className={`p-2.5 rounded border text-xs text-center ${terceiro1 ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
+                  {terceiro1 || '⚡ Perdedor J101'}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* COLUNAS DECLARATIVAS */}
-          {renderFaseEncadeada(OITAVAS, 'Oitavas de Final', 'text-blue-400', 'pt-16')}
-          {renderFaseEncadeada(QUARTAS, 'Quartas de Final', 'text-purple-400', 'pt-32')}
-          {renderFaseEncadeada(SEMIS, 'Semifinais', 'text-pink-400', 'pt-56')}
-
-          {/* COLUNA FINAL */}
-          <div className="w-72 space-y-12 flex-shrink-0 pt-48">
-            <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider text-center border-b border-white/5 pb-2">Finais</h3>
-            
-            <div className="bg-slate-950 p-4 rounded-xl border border-orange-500/20 space-y-3 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-2 opacity-10 text-2xl">🥉</div>
-              <span className="text-[10px] text-orange-400 font-black block uppercase tracking-widest text-center">Disputa de 3º Lugar</span>
-              <div className={`p-2.5 rounded border text-xs text-center ${terceiro1 ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
-                {terceiro1 || '⚡ Perdedor J101'}
+                <div className="text-center text-xs text-gray-700 font-black">VS</div>
+                <div className={`p-2.5 rounded border text-xs text-center ${terceiro2 ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
+                  {terceiro2 || '⚡ Perdedor J102'}
+                </div>
+                <select
+                  disabled={apenasLeitura || !terceiro1 || !terceiro2}
+                  value={palpites['J103'] || ''}
+                  onChange={(e) => handleSelectChange('J103', e.target.value)}
+                  className="w-full bg-orange-950/40 border border-orange-500/30 text-orange-400 rounded-lg p-2 text-xs font-bold outline-none focus:border-orange-500 disabled:opacity-30 disabled:bg-transparent"
+                >
+                  <option value="">-- Medalhista de Bronze --</option>
+                  {terceiro1 && <option value={terceiro1}>{terceiro1}</option>}
+                  {terceiro2 && <option value={terceiro2} disabled={terceiro1 === terceiro2}>{terceiro2}</option>}
+                </select>
               </div>
-              <div className="text-center text-xs text-gray-700 font-black">VS</div>
-              <div className={`p-2.5 rounded border text-xs text-center ${terceiro2 ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
-                {terceiro2 || '⚡ Perdedor J102'}
+
+              <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30 space-y-3 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 opacity-10 text-2xl">🏆</div>
+                <span className="text-[10px] text-amber-400 font-black block uppercase tracking-widest text-center">Grande Final</span>
+                <div className={`p-2.5 rounded border text-xs text-center ${obterVencedor('J101') ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
+                  {obterVencedor('J101') || '⚡ Vencedor J101'}
+                </div>
+                <div className="text-center text-xs text-gray-700 font-black">VS</div>
+                <div className={`p-2.5 rounded border text-xs text-center ${obterVencedor('J102') ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
+                  {obterVencedor('J102') || '⚡ Vencedor J102'}
+                </div>
+                <select
+                  disabled={apenasLeitura || !obterVencedor('J101') || !obterVencedor('J102')}
+                  value={palpites['J104'] || ''}
+                  onChange={(e) => handleSelectChange('J104', e.target.value)}
+                  className="w-full bg-amber-500 text-black rounded-lg p-2.5 text-xs font-black outline-none tracking-wide uppercase shadow-lg disabled:opacity-30"
+                >
+                  <option value="" className="text-white bg-slate-900 font-normal">-- CRAVE O CAMPEÃO --</option>
+                  {obterVencedor('J101') && <option value={obterVencedor('J101')} className="text-white bg-slate-900">{obterVencedor('J101')}</option>}
+                  {obterVencedor('J102') && <option value={obterVencedor('J102')} className="text-white bg-slate-900" disabled={obterVencedor('J101') === obterVencedor('J102')}>{obterVencedor('J102')}</option>}
+                </select>
               </div>
-              <select
-                disabled={apenasLeitura || !terceiro1 || !terceiro2}
-                value={palpites['J103'] || ''}
-                onChange={(e) => handleSelectChange('J103', e.target.value)}
-                className="w-full bg-orange-950/40 border border-orange-500/30 text-orange-400 rounded-lg p-2 text-xs font-bold outline-none focus:border-orange-500 disabled:opacity-30 disabled:bg-transparent"
-              >
-                <option value="">-- Medalhista de Bronze --</option>
-                {terceiro1 && <option value={terceiro1}>{terceiro1}</option>}
-                {terceiro2 && <option value={terceiro2} disabled={terceiro1 === terceiro2}>{terceiro2}</option>}
-              </select>
             </div>
 
-            <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30 space-y-3 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-2 opacity-10 text-2xl">🏆</div>
-              <span className="text-[10px] text-amber-400 font-black block uppercase tracking-widest text-center">Grande Final</span>
-              <div className={`p-2.5 rounded border text-xs text-center ${obterVencedor('J101') ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
-                {obterVencedor('J101') || '⚡ Vencedor J101'}
-              </div>
-              <div className="text-center text-xs text-gray-700 font-black">VS</div>
-              <div className={`p-2.5 rounded border text-xs text-center ${obterVencedor('J102') ? 'bg-black/40 border-white/10 font-bold text-gray-200' : 'bg-black/10 border-white/5 text-gray-600 border-dashed'}`}>
-                {obterVencedor('J102') || '⚡ Vencedor J102'}
-              </div>
-              <select
-                disabled={apenasLeitura || !obterVencedor('J101') || !obterVencedor('J102')}
-                value={palpites['J104'] || ''}
-                onChange={(e) => handleSelectChange('J104', e.target.value)}
-                className="w-full bg-amber-500 text-black rounded-lg p-2.5 text-xs font-black outline-none tracking-wide uppercase shadow-lg disabled:opacity-30"
-              >
-                <option value="" className="text-white bg-slate-900 font-normal">-- CRAVE O CAMPEÃO --</option>
-                {obterVencedor('J101') && <option value={obterVencedor('J101')} className="text-white bg-slate-900">{obterVencedor('J101')}</option>}
-                {obterVencedor('J102') && <option value={obterVencedor('J102')} className="text-white bg-slate-900" disabled={obterVencedor('J101') === obterVencedor('J102')}>{obterVencedor('J102')}</option>}
-              </select>
-            </div>
           </div>
-
         </div>
       </div>
+
+      {/* BOTÃO FLUTUANTE SOLTO E DISCRETO (SEM BARRA) 
+        Apenas uma div com z-index alto posicionada à esquerda e isolada. 
+      */}
+      <div className="fixed bottom-6 left-6 z-[9999]">
+        <button
+          onClick={salvarMataMata}
+          disabled={apenasLeitura || salvando}
+          className="flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-3 rounded-full shadow-[0_4px_20px_rgba(16,185,129,0.5)] border border-emerald-400/20 font-bold text-xs tracking-wide transition active:scale-95 disabled:opacity-40 cursor-pointer"
+        >
+          <span className="text-sm">💾</span>
+          {salvando ? 'Salvando...' : 'Salvar'}
+        </button>
+      </div>
+
     </div>
   );
 }
