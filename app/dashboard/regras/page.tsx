@@ -48,7 +48,30 @@ export default function Regras() {
                 </div>
             </section>
 
-            {/* SEÇÃO 2: REGRAS MATA-MATA (Copiado exatamente como você pediu) */}
+            {/* SEÇÃO 2: FASE DE GRUPOS (Lembrete rápido para manter a página completa) */}
+            <section className="bg-slate-900/80 p-8 rounded-3xl border border-white/10 shadow-xl">
+                <h2 className="text-2xl font-black text-white mb-6 flex items-center gap-3 border-b border-white/10 pb-4">
+                    ⚽ FASE DE GRUPOS
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-black/40 p-5 rounded-xl border border-white/5">
+                        <h3 className="font-black text-emerald-400 mb-1">Placar Exato</h3>
+                        <p className="text-gray-400 text-sm">Acertou o número de gols dos dois times.</p>
+                        <p className="text-gray-400 text-sm">Palpite: 1x3 e foi 1x3</p>
+
+                        <div className="mt-3 font-bold text-white text-lg">+15 Pontos</div>
+                    </div>
+                    <div className="bg-black/40 p-5 rounded-xl border border-white/5">
+                        <h3 className="font-black text-blue-400 mb-1">Apenas Resultado</h3>
+                        <p className="text-gray-400 text-sm">Acertou quem ganhou ou que foi empate, mas errou o placar.</p>
+                        <p className="text-gray-400 text-sm">Palpite: 1x3, mas foi 1x7 - Acertou quem ganhou </p>
+                        <p className="text-gray-400 text-sm">Palpite: 1x1 mas foi 3x3 - Acertou que foi um empate </p>
+                        <div className="mt-3 font-bold text-white text-lg">+5 Pontos</div>
+                    </div>
+                </div>
+            </section>
+
+            {/* SEÇÃO 3: REGRAS MATA-MATA (Copiado exatamente como você pediu) */}
             <section className="bg-slate-900/80 p-8 rounded-3xl border border-white/10 shadow-xl">
                 <h2 className="text-2xl font-black text-white mb-6 flex items-center gap-3 border-b border-white/10 pb-4">
                     ⚡ CHAVEAMENTO DO MATA-MATA (QUEM PASSA)
@@ -97,24 +120,6 @@ export default function Regras() {
                 </ul>
             </section>
 
-            {/* SEÇÃO 3: FASE DE GRUPOS (Lembrete rápido para manter a página completa) */}
-            <section className="bg-slate-900/80 p-8 rounded-3xl border border-white/10 shadow-xl">
-                <h2 className="text-2xl font-black text-white mb-6 flex items-center gap-3 border-b border-white/10 pb-4">
-                    ⚽ FASE DE GRUPOS
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-black/40 p-5 rounded-xl border border-white/5">
-                        <h3 className="font-black text-emerald-400 mb-1">Placar Exato</h3>
-                        <p className="text-gray-400 text-sm">Acertou o número de gols dos dois times.</p>
-                        <div className="mt-3 font-bold text-white text-lg">+15 Pontos</div>
-                    </div>
-                    <div className="bg-black/40 p-5 rounded-xl border border-white/5">
-                        <h3 className="font-black text-blue-400 mb-1">Apenas Resultado</h3>
-                        <p className="text-gray-400 text-sm">Acertou quem ganhou ou o empate, mas errou o placar.</p>
-                        <div className="mt-3 font-bold text-white text-lg">+5 Pontos</div>
-                    </div>
-                </div>
-            </section>
 
 
 
