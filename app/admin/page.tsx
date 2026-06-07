@@ -87,23 +87,38 @@ export default function PainelAdmin() {
         const { data: pEsp } = await supabase.from('palpites_especiais').select('*').eq('user_id', userId);
 
         const { data: ajustes } = await supabase.from('pontuacoes_manuais').select('*').eq('user_id', userId);
-        
+
         // 🛠️ Unificação da chave com a tabela de origem para isolar colisões de ID sequencial
         const mapaAjustes = new Map(ajustes?.map(a => [`${a.user_id}_${a.tabela_origem}_${a.referencia_id}`, a.pontos_ajustados]));
 
         const gruposMesclados = (pJogos || []).map(p => {
             const chave = `${userId}_palpites_jogos_${p.id}`;
-            return { ...p, pontos_ganhos: mapaAjustes.has(chave) ? mapaAjustes.get(chave) : p.pontos_ganhos };
+            const temAjuste = mapaAjustes.has(chave);
+            return {
+                ...p,
+                pontos_sistema_original: p.pontos_ganhos, // 🛡️ Salva o cálculo original do motor aqui
+                pontos_ganhos: temAjuste ? mapaAjustes.get(chave) : p.pontos_ganhos
+            };
         });
 
         const mmMesclados = (pMM || []).map(p => {
             const chave = `${userId}_palpites_matamata_${p.id}`;
-            return { ...p, pontos_ganhos: mapaAjustes.has(chave) ? mapaAjustes.get(chave) : p.pontos_ganhos };
+            const temAjuste = mapaAjustes.has(chave);
+            return {
+                ...p,
+                pontos_sistema_original: p.pontos_ganhos, // 🛡️ Salva o cálculo original do motor aqui
+                pontos_ganhos: temAjuste ? mapaAjustes.get(chave) : p.pontos_ganhos
+            };
         });
 
         const espMesclados = (pEsp || []).map(p => {
             const chave = `${userId}_palpites_especiais_${p.id}`;
-            return { ...p, pontos_ganhos: mapaAjustes.has(chave) ? mapaAjustes.get(chave) : p.pontos_ganhos };
+            const temAjuste = mapaAjustes.has(chave);
+            return {
+                ...p,
+                pontos_sistema_original: p.pontos_ganhos, // 🛡️ Salva o cálculo original do motor aqui
+                pontos_ganhos: temAjuste ? mapaAjustes.get(chave) : p.pontos_ganhos
+            };
         });
 
         setDados({ grupos: gruposMesclados, mm: mmMesclados, esp: espMesclados });
@@ -141,7 +156,7 @@ export default function PainelAdmin() {
     const salvarPlacarJogo = async (jogoId: number, campo: 'gols_casa' | 'gols_fora', valorRaw: string) => {
         const valorLimpo = valorRaw.trim();
         const gols = valorLimpo === '' ? null : parseInt(valorLimpo, 10);
-        
+
         if (gols !== null && isNaN(gols)) return;
 
         // Regra: Se ambos os campos tiverem valor ou se você estiver preenchendo o placar,
@@ -152,7 +167,7 @@ export default function PainelAdmin() {
 
         const { error } = await supabase
             .from('jogos')
-            .update({ 
+            .update({
                 [campo]: gols,
                 finalizado: temPlacarCompleto // 🔥 Seta TRUE se ambos os gols existirem
             })
@@ -219,7 +234,7 @@ export default function PainelAdmin() {
                     for (const p of palpitesGrupos) {
                         const chaveAjuste = `${perfil.id}_palpites_jogos_${p.id}`;
                         let pontosDestePalpite = 0;
-                        
+
                         if (mapaAjustes.has(chaveAjuste)) {
                             pontosDestePalpite = Number(mapaAjustes.get(chaveAjuste) || 0);
                         } else {
@@ -233,8 +248,8 @@ export default function PainelAdmin() {
                                 if (pC === rC && pF === rF) {
                                     pontosDestePalpite = 15;
                                 } else if (
-                                    (pC > pF && rC > rF) || 
-                                    (pC < pF && rC < rF) || 
+                                    (pC > pF && rC > rF) ||
+                                    (pC < pF && rC < rF) ||
                                     (pC === pF && rC === rF)
                                 ) {
                                     pontosDestePalpite = 5;
@@ -510,7 +525,10 @@ function SecaoCorrecao({ titulo, itens, tabela, renderLabel, renderPalpite, onSa
                                 <span className="col-span-3 text-center text-xs font-black text-amber-400 bg-amber-500/10 py-1 rounded border border-amber-500/20 truncate px-1">
                                     {renderPalpite(p)}
                                 </span>
-                                <span className="col-span-2 text-center text-emerald-400 font-mono font-bold text-sm">{p.pontos_ganhos ?? 0}</span>
+                                {/* 🎯 Agora mostra o ponto real calculado pelo robô, sem o override manual */}
+                                <span className="col-span-2 text-center text-emerald-400 font-mono font-bold text-sm">
+                                    {p.pontos_sistema_original ?? p.pontos_ganhos ?? 0}
+                                </span>                                
                                 <input
                                     key={`${p.id}_${p.pontos_ganhos}`}
                                     type="number"
