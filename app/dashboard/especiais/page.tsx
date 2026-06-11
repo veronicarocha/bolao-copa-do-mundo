@@ -117,7 +117,7 @@ export default function PalpitesEspeciais() {
             Preencha os seus grandes palpites da Copa. Atenção aos pontos bônus de cada categoria!
           </p>
           <p className="text-sm text-amber-400 font-semibold mt-1">
-            ⏰ Data limite para envio dos palpites: 09 de Junho de 2026. Após essa data as informações serão apenas leitura.
+           Boa sorte ...
           </p>
         </div>
         <button

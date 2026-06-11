@@ -284,15 +284,9 @@ export default function PalpitesMataMata() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-white/10 pb-6">
           <div>
             <h1 className="text-3xl font-black tracking-tight">Chaveamento Mata-Mata</h1>
-            <p className="text-sm text-amber-400 font-semibold mt-1">⏰ Data limite: 09 de Junho de 2026.</p>
+            <p className="text-sm text-amber-400 font-semibold mt-1">Boa sorte...</p>
           </div>
-          <button
-            onClick={salvarMataMata}
-            disabled={apenasLeitura || salvando}
-            className="hidden md:block px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold shadow-lg transition active:scale-95 disabled:opacity-50"
-          >
-            {salvando ? 'Salvando...' : apenasLeitura ? '🔒 Mercado Fechado' : '💾 Salvar Chaveamento'}
-          </button>
+          
         </div>
 
         {/* Zona de Scroll Horizontal */}
@@ -413,7 +407,7 @@ export default function PalpitesMataMata() {
       {/* BOTÃO FLUTUANTE SOLTO E DISCRETO (SEM BARRA) 
         Apenas uma div com z-index alto posicionada à esquerda e isolada. 
       */}
-      <div className="fixed bottom-6 left-6 z-[9999]">
+      {/*<div className="fixed bottom-6 left-6 z-[9999]">
         <button
           onClick={salvarMataMata}
           disabled={apenasLeitura || salvando}
@@ -422,7 +416,7 @@ export default function PalpitesMataMata() {
           <span className="text-sm">💾</span>
           {salvando ? 'Salvando...' : 'Salvar Palpites'}
         </button>
-      </div>
+      </div>  */}
 
     </div>
   );
