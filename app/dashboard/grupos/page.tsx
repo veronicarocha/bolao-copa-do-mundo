@@ -135,19 +135,10 @@ export default function PalpitesGrupos() {
                         Preencha os placares. Pontuação: <span className="text-emerald-400 font-bold">Placar Exato (15 pts)</span> | <span className="text-blue-400 font-bold">Apenas Resultado (5 pts)</span>
                     </p>
                     <p className="text-sm text-amber-400 font-semibold mt-1">
-                        ⏰ Data limite para envio dos palpites: 09 de Junho de 2026. Após essa data as informações serão apenas leitura.
+                        Boa sorte!
                     </p>
                 </div>
-                <button
-                    onClick={salvarPalpites}
-                    disabled={apenasLeitura || salvando}
-                    className={`w-full md:w-auto px-6 py-3.5 rounded-xl font-bold shadow-lg transition transform active:scale-95 ${apenasLeitura
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/20 cursor-not-allowed'
-                        : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-950/20'
-                        }`}
-                >
-                    {salvando ? 'Salvando palpites...' : apenasLeitura ? '🔒 Mercado Fechado' : '💾 Salvar Meus Palpites'}
-                </button>
+                
             </div>
 
             {/* Lista de Grupos */}
@@ -216,16 +207,7 @@ export default function PalpitesGrupos() {
             {/* BOTÃO FLUTUANTE DISCRETO: 
         Alinhado à esquerda perfeitamente e imune ao scroll horizontal da tabela graças à correção acima.
       */}
-      <div className="fixed bottom-6 left-6 z-[9999]">
-        <button
-          onClick={salvarPalpites}
-          disabled={apenasLeitura || salvando}
-          className="flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl shadow-[0_4px_20px_rgba(16,185,129,0.5)] border border-emerald-400/20 font-bold text-xs tracking-wide transition active:scale-95 disabled:opacity-40 cursor-pointer"
-        >
-          <span className="text-base">{salvando ? '⏳' : '💾'}</span>
-          <span>{salvando ? 'Salvando...' : 'Salvar'}</span>
-        </button>
-      </div>
+      
 
         </div>
     );
