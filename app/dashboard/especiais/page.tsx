@@ -119,7 +119,7 @@ export default function PalpitesEspeciais() {
              ...
           </p>
         </div>
-        <button
+        {/*<button
           onClick={handleSalvar}
           disabled={apenasLeitura || salvando}
           className={`w-full md:w-auto px-6 py-3.5 rounded-xl font-bold shadow-lg transition transform active:scale-95 ${
@@ -129,7 +129,7 @@ export default function PalpitesEspeciais() {
           }`}
         >
           {salvando ? 'Salvando...' : apenasLeitura ? '🔒 Mercado Fechado' : '💾 Salvar Meus Especiais'}
-        </button>
+        </button>*/}
       </div>
 
       {/* Grid de Perguntas */}
