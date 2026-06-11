@@ -206,7 +206,7 @@ export default function PalpitesGrupos() {
 
             {/* BOTÃO FLUTUANTE DISCRETO: 
         Alinhado à esquerda perfeitamente e imune ao scroll horizontal da tabela graças à correção acima.
-      */}
+      */}{/*
       <button
                     onClick={salvarPalpites}
                     disabled={apenasLeitura || salvando}
@@ -217,7 +217,7 @@ export default function PalpitesGrupos() {
                 >
                     {salvando ? 'Salvando palpites...' : apenasLeitura ? '🔒 Mercado Fechado' : '💾 Salvar Meus Palpites'}
                 </button>
-
-        </div>
+*/}
+        </div> 
     );
 }

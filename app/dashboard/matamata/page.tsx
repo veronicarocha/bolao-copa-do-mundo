@@ -407,7 +407,7 @@ export default function PalpitesMataMata() {
       {/* BOTÃO FLUTUANTE SOLTO E DISCRETO (SEM BARRA) 
         Apenas uma div com z-index alto posicionada à esquerda e isolada. 
       */}
-      <div className="fixed bottom-6 left-6 z-[9999]">
+      {/*<div className="fixed bottom-6 left-6 z-[9999]">
         <button
           onClick={salvarMataMata}
           disabled={apenasLeitura || salvando}
@@ -416,7 +416,7 @@ export default function PalpitesMataMata() {
           <span className="text-sm">💾</span>
           {salvando ? 'Salvando...' : 'Salvar Palpites'}
         </button>
-      </div> 
+      </div> */}
 
     </div>
   );
