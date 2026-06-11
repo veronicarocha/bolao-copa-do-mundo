@@ -132,7 +132,7 @@ export default function PalpitesGrupos() {
                 <div>
                     <h1 className="text-3xl font-black text-white tracking-tight">Fase de Grupos</h1>
                     <p className="text-sm text-gray-400 mt-1">
-                        Preencha os placares. Pontuação: <span className="text-emerald-400 font-bold">Placar Exato (15 pts)</span> | <span className="text-blue-400 font-bold">Apenas Resultado (5 pts)</span>
+                        Pontuação: <span className="text-emerald-400 font-bold">Placar Exato (15 pts)</span> | <span className="text-blue-400 font-bold">Apenas Resultado (5 pts)</span>
                     </p>
                     <p className="text-sm text-amber-400 font-semibold mt-1">
                         Boa sorte!

@@ -114,13 +114,12 @@ export default function PalpitesEspeciais() {
         <div>
           <h1 className="text-3xl font-black tracking-tight">🔥 Palpites Especiais</h1>
           <p className="text-sm text-gray-400 mt-1">
-            Preencha os seus grandes palpites da Copa. Atenção aos pontos bônus de cada categoria!
           </p>
           <p className="text-sm text-amber-400 font-semibold mt-1">
-           Boa sorte ...
+             ...
           </p>
         </div>
-        <button
+       {/* <button
           onClick={handleSalvar}
           disabled={apenasLeitura || salvando}
           className={`w-full md:w-auto px-6 py-3.5 rounded-xl font-bold shadow-lg transition transform active:scale-95 ${
@@ -130,7 +129,7 @@ export default function PalpitesEspeciais() {
           }`}
         >
           {salvando ? 'Salvando...' : apenasLeitura ? '🔒 Mercado Fechado' : '💾 Salvar Meus Especiais'}
-        </button>
+        </button>*/}
       </div>
 
       {/* Grid de Perguntas */}
