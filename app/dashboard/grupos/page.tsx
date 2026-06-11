@@ -207,7 +207,16 @@ export default function PalpitesGrupos() {
             {/* BOTÃO FLUTUANTE DISCRETO: 
         Alinhado à esquerda perfeitamente e imune ao scroll horizontal da tabela graças à correção acima.
       */}
-      
+      <button
+                    onClick={salvarPalpites}
+                    disabled={apenasLeitura || salvando}
+                    className={`w-full md:w-auto px-6 py-3.5 rounded-xl font-bold shadow-lg transition transform active:scale-95 ${apenasLeitura
+                        ? 'bg-red-500/10 text-red-400 border border-red-500/20 cursor-not-allowed'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-950/20'
+                        }`}
+                >
+                    {salvando ? 'Salvando palpites...' : apenasLeitura ? '🔒 Mercado Fechado' : '💾 Salvar Meus Palpites'}
+                </button>
 
         </div>
     );
