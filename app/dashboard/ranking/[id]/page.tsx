@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
+// 🔥 Força o Next.js a quebrar caches agressivos de páginas estáticas
+export const dynamic = 'force-dynamic';
+
 interface Jogo {
   id: string;
   time_casa: string;
@@ -29,20 +32,16 @@ interface Perfil {
 function removerAcentos(str: string): string {
   if (!str) return '';
   
-  // 1. Passa tudo para minúsculo primeiro
   let texto = str.toLowerCase();
 
-  // 2. Remove acentos e caracteres especiais de forma bruta
   const de = "áàâãäéèêëíìîïóòôõöúùûüçñ";
   const para = "aaaaaeeeeiiiiooooouuuucn";
   for (let i = 0; i < de.length; i++) {
     texto = texto.split(de[i]).join(para[i]);
   }
 
-  // 3. Remove caracteres residuais
   texto = texto.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim();
 
-  // 4. Mapeia as equivalências agora que o texto está 100% limpo e sem acentos
   if (texto === 'ri do ira') return 'ira';
   if (texto === 'tchequia') return 'republica tcheca';
   if (texto === 'curacao' || texto === 'curacau') return 'curacao';
@@ -169,9 +168,10 @@ export default function VisualizarPalpites() {
 
     async function carregarDadosDoParticipante() {
       try {
+        // 🎯 CORREÇÃO CRÍTICA: Puxando o campo "pontos" legítimo direto da tabela 'perfis'
         const { data: dadosPerfil, error: erroPerfil } = await supabase
           .from('perfis')
-          .select('nome')
+          .select('nome, pontos') 
           .eq('id', id)
           .maybeSingle();
 
@@ -188,7 +188,7 @@ export default function VisualizarPalpites() {
         if (erroGrupos) throw erroGrupos;
         const grupos = (dadosGrupos as any) || [];
         
-        // 🛠️ Ordenação Cronológica de Duplo Sentido
+        // 🛠️ Ordenação Cronológica
         const gruposOrdenados = grupos.sort((a: any, b: any) => {
           const casaA = removerAcentos(a.jogos?.time_casa || '');
           const foraA = removerAcentos(a.jogos?.time_fora || '');
@@ -219,15 +219,10 @@ export default function VisualizarPalpites() {
         });
         setPalpitesEsp(espOrdenados);
 
-        // 🧮 SOMA DINÂMICA EM MEMÓRIA
-        let somaTotal = 0;
-        grupos.forEach((p: any) => somaTotal += Number(p.pontos_ganhos || 0));
-        (dadosMM || []).forEach((p: any) => somaTotal += Number(p.pontos_ganhos || 0));
-        esp.forEach((p: any) => somaTotal += Number(p.pontos_ganhos || 0));
-
+        // 🎯 DEFINIÇÃO FIEL: Usa o valor oficial que está gravado na tabela do banco de dados
         setPerfil({
           nome: dadosPerfil?.nome || 'Usuário Sem Nome',
-          pontos: somaTotal
+          pontos: dadosPerfil?.pontos ?? 0 
         });
 
       } catch (err) {
@@ -338,7 +333,6 @@ export default function VisualizarPalpites() {
                 if (!jogo) return null;
                 const jogoTevePlacarReal = jogo.gols_casa !== null && jogo.gols_fora !== null;
 
-                // 🛠️ Busca Bidirecional com Higienização de Países Corrigida
                 const casaLimpa = removerAcentos(jogo.time_casa || '');
                 const foraLimpa = removerAcentos(jogo.time_fora || '');
 
@@ -422,7 +416,6 @@ export default function VisualizarPalpites() {
                             <span className="text-xs text-gray-500 font-mono">[{info.detalhe}]</span>
                           </div>
                           
-                          {/* 🛠️ Removemos permanentemente o aviso cinza de "Chaveamento não preenchido" daqui */}
                           <div className="text-xs text-gray-400 sm:text-center flex-1">
                             {timesNoConfronto.length > 0 ? (
                               <p>Confronto simulado: <span className="text-gray-200 font-bold">{timesNoConfronto.join(' x ')}</span></p>
