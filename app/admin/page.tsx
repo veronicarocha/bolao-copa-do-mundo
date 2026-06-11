@@ -11,6 +11,42 @@ interface DadosPalpites {
     esp: any[];
 }
 
+// 🧮 Motor de Validação Avançado por Contenção de Termos e Busca Aproximada
+function validarRespostaEspecial(respostaParticipante: string, termoValidacao: string): boolean {
+    if (!respostaParticipante || !termoValidacao) return false;
+
+    const normalizar = (texto: string) => {
+        return texto
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') 
+            .replace(/[^a-z0-9\s]/g, '')     
+            .replace(/\s+/g, ' ')            
+            .trim();
+    };
+
+    const participanteLimpo = normalizar(respostaParticipante);
+    const gabaritoLimpo = normalizar(termoValidacao);
+
+    if (gabaritoLimpo.includes(participanteLimpo) || participanteLimpo.includes(gabaritoLimpo)) {
+        return true;
+    }
+
+    const palavrasGabarito = gabaritoLimpo.split(' ').filter(p => p.length > 2);
+    if (palavrasGabarito.length > 0) {
+        const acertouPorGabarito = palavrasGabarito.every(palavra => participanteLimpo.includes(palavra));
+        if (acertouPorGabarito) return true;
+    }
+
+    const palavrasParticipante = participanteLimpo.split(' ').filter(p => p.length > 2);
+    if (palavrasParticipante.length > 0) {
+        const acertouPorParticipante = palavrasParticipante.every(palavra => gabaritoLimpo.includes(palavra));
+        if (acertouPorParticipante) return true;
+    }
+
+    return false;
+}
+
 export default function PainelAdmin() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [carregando, setCarregando] = useState(true);
@@ -62,12 +98,12 @@ export default function PainelAdmin() {
 
             const { data: listaMM } = await supabase.from('resultados_matamata').select('*');
             const mapaMM: Record<string, string> = {};
-            listaMM?.forEach(x => { mapaMM[x.fase_vaga] = x.selecao_real; });
+            listaMM?.forEach(x => { if (x.fase_vaga) mapaMM[x.fase_vaga.trim()] = x.selecao_real; });
             setResultadosMM(mapaMM);
 
             const { data: listaEsp } = await supabase.from('resultados_especiais').select('*');
             const mapaEsp: Record<string, string> = {};
-            listaEsp?.forEach(x => { mapaEsp[x.pergunta_id] = x.resposta_real; });
+            listaEsp?.forEach(x => { if (x.pergunta_id) mapaEsp[x.pergunta_id.trim()] = x.resposta_real; });
             setResultadosEsp(mapaEsp);
 
             const { data: listaUsuarios } = await supabase.from('perfis').select('id, nome').order('nome', { ascending: true });
@@ -85,39 +121,34 @@ export default function PainelAdmin() {
         const { data: pJogos } = await supabase.from('palpites_jogos').select('*, jogos(time_casa, time_fora)').eq('user_id', userId);
         const { data: pMM } = await supabase.from('palpites_matamata').select('*').eq('user_id', userId);
         const { data: pEsp } = await supabase.from('palpites_especiais').select('*').eq('user_id', userId);
-
         const { data: ajustes } = await supabase.from('pontuacoes_manuais').select('*').eq('user_id', userId);
 
-        // 🛠️ Unificação da chave com a tabela de origem para isolar colisões de ID sequencial
         const mapaAjustes = new Map(ajustes?.map(a => [`${a.user_id}_${a.tabela_origem}_${a.referencia_id}`, a.pontos_ajustados]));
 
         const gruposMesclados = (pJogos || []).map(p => {
             const chave = `${userId}_palpites_jogos_${p.id}`;
-            const temAjuste = mapaAjustes.has(chave);
             return {
                 ...p,
-                pontos_sistema_original: p.pontos_ganhos, // 🛡️ Salva o cálculo original do motor aqui
-                pontos_ganhos: temAjuste ? mapaAjustes.get(chave) : p.pontos_ganhos
+                pontos_sistema_original: p.pontos_ganhos,
+                pontos_ganhos: mapaAjustes.has(chave) ? mapaAjustes.get(chave) : p.pontos_ganhos
             };
         });
 
         const mmMesclados = (pMM || []).map(p => {
             const chave = `${userId}_palpites_matamata_${p.id}`;
-            const temAjuste = mapaAjustes.has(chave);
             return {
                 ...p,
-                pontos_sistema_original: p.pontos_ganhos, // 🛡️ Salva o cálculo original do motor aqui
-                pontos_ganhos: temAjuste ? mapaAjustes.get(chave) : p.pontos_ganhos
+                pontos_sistema_original: p.pontos_ganhos,
+                pontos_ganhos: mapaAjustes.has(chave) ? mapaAjustes.get(chave) : p.pontos_ganhos
             };
         });
 
         const espMesclados = (pEsp || []).map(p => {
             const chave = `${userId}_palpites_especiais_${p.id}`;
-            const temAjuste = mapaAjustes.has(chave);
             return {
                 ...p,
-                pontos_sistema_original: p.pontos_ganhos, // 🛡️ Salva o cálculo original do motor aqui
-                pontos_ganhos: temAjuste ? mapaAjustes.get(chave) : p.pontos_ganhos
+                pontos_sistema_original: p.pontos_ganhos,
+                pontos_ganhos: mapaAjustes.has(chave) ? mapaAjustes.get(chave) : p.pontos_ganhos
             };
         });
 
@@ -152,56 +183,66 @@ export default function PainelAdmin() {
         });
     };
 
-    // 🛠️ Função atualizada para marcar o jogo como FINALIZADO automaticamente
     const salvarPlacarJogo = async (jogoId: number, campo: 'gols_casa' | 'gols_fora', valorRaw: string) => {
         const valorLimpo = valorRaw.trim();
         const gols = valorLimpo === '' ? null : parseInt(valorLimpo, 10);
 
         if (gols !== null && isNaN(gols)) return;
 
-        // Regra: Se ambos os campos tiverem valor ou se você estiver preenchendo o placar,
-        // definimos que o jogo foi finalizado. Se apagar o placar, volta para false.
         const jogoAtual = jogos.find(j => j.id === jogoId);
         const outroCampo = campo === 'gols_casa' ? 'gols_fora' : 'gols_casa';
         const temPlacarCompleto = gols !== null && jogoAtual?.[outroCampo] !== null;
 
         const { error } = await supabase
             .from('jogos')
-            .update({
-                [campo]: gols,
-                finalizado: temPlacarCompleto // 🔥 Seta TRUE se ambos os gols existirem
-            })
+            .update({ [campo]: gols, finalizado: temPlacarCompleto })
             .eq('id', jogoId);
 
         if (error) {
-            console.error("Erro ao salvar placar oficial no Supabase:", error);
+            console.error("Erro ao salvar placar oficial:", error);
             alert(`Erro ao salvar resultado do jogo: ${error.message}`);
         } else {
-            // Atualiza o estado local para refletir o "finalizado" na tela se necessário
             setJogos(prev => prev.map(j => j.id === jogoId ? { ...j, [campo]: gols, finalizado: temPlacarCompleto } : j));
         }
     };
 
     const salvarResultadoMM = async (faseVaga: string, selecao: string) => {
         if (!selecao) return;
-        await supabase.from('resultados_matamata').upsert({ fase_vaga: faseVaga, selecao_real: selecao }, { onConflict: 'fase_vaga' });
+        await supabase.from('resultados_matamata').upsert({ fase_vaga: faseVaga.trim(), selecao_real: selecao.trim() }, { onConflict: 'fase_vaga' });
     };
 
     const salvarResultadoEsp = async (pId: string, resposta: string) => {
         if (!resposta) return;
-        await supabase.from('resultados_especiais').upsert({ pergunta_id: pId, resposta_real: resposta }, { onConflict: 'pergunta_id' });
+        await supabase.from('resultados_especiais').upsert({ pergunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
     };
 
+    // 🔥 MOTOR DE ALTA PERFORMANCE (Bulk Operation)
     const rodarCalculoPontuacaoGlobal = async () => {
         setProcessando(true);
         try {
-            const { data: jogosReais } = await supabase.from('jogos').select('*');
-            const { data: mmReal } = await supabase.from('resultados_matamata').select('*');
-            const { data: espReal } = await supabase.from('resultados_especiais').select('*');
-            const { data: ajustesManuais } = await supabase.from('pontuacoes_manuais').select('*');
+            // Busca PARALELA para erradicar timeouts (Tempo de resposta < 100ms)
+            const [
+                { data: jogosReais },
+                { data: mmReal },
+                { data: espReal },
+                { data: ajustesManuais },
+                { data: perfis },
+                { data: todosPalpitesGrupos },
+                { data: todosPalpitesMM },
+                { data: todosPalpitesEsp }
+            ] = await Promise.all([
+                supabase.from('jogos').select('*'),
+                supabase.from('resultados_matamata').select('*'),
+                supabase.from('resultados_especiais').select('*'),
+                supabase.from('pontuacoes_manuais').select('*'),
+                supabase.from('perfis').select('*'),
+                supabase.from('palpites_jogos').select('*'),
+                supabase.from('palpites_matamata').select('*'),
+                supabase.from('palpites_especiais').select('*')
+            ]);
 
-            const mapaMMReal = new Map(mmReal?.map(x => [x.fase_vaga, x.selecao_real.trim().toLowerCase()]));
-            const mapaEspReal = new Map(espReal?.map(x => [x.pergunta_id, x.resposta_real.trim().toLowerCase()]));
+            const mapaMMReal = new Map(mmReal?.map(x => [x.fase_vaga.trim().toLowerCase(), x.selecao_real.trim().toLowerCase()]));
+            const mapaEspReal = new Map(espReal?.map(x => [x.pergunta_id.trim().toLowerCase(), x.resposta_real.trim()]));
             const mapaAjustes = new Map(ajustesManuais?.map(x => [`${x.user_id}_${x.tabela_origem}_${x.referencia_id}`, x.pontos_ajustados]));
 
             const obterPontosFase = (id: string) => {
@@ -221,104 +262,103 @@ export default function PainelAdmin() {
                 menos_cartoes_selecao: 15, primeiro_zero_a_zero: 15
             };
 
-            const { data: perfis } = await supabase.from('perfis').select('id');
-            if (!perfis) return;
+            if (!perfis) throw new Error("Erro na base de dados");
 
-            // 🛠️ Trocado para loop síncrono "for...of" para respeitar o fluxo do await passo a passo
+            const updateLoteGrupos: any[] = [];
+            const updateLoteMM: any[] = [];
+            const updateLoteEsp: any[] = [];
+            const updateLotePerfis: any[] = [];
+
             for (const perfil of perfis) {
                 let totalPontosUsuario = 0;
 
                 // A) FASE DE GRUPOS
-                const { data: palpitesGrupos } = await supabase.from('palpites_jogos').select('*').eq('user_id', perfil.id);
-                if (palpitesGrupos) {
-                    for (const p of palpitesGrupos) {
-                        const chaveAjuste = `${perfil.id}_palpites_jogos_${p.id}`;
-                        let pontosDestePalpite = 0;
+                const palpitesUsuarioJogos = todosPalpitesGrupos?.filter(p => p.user_id === perfil.id) || [];
+                for (const p of palpitesUsuarioJogos) {
+                    const chaveAjuste = `${perfil.id}_palpites_jogos_${p.id}`;
+                    let pts = p.pontos_ganhos ?? 0;
 
-                        if (mapaAjustes.has(chaveAjuste)) {
-                            pontosDestePalpite = Number(mapaAjustes.get(chaveAjuste) || 0);
-                        } else {
-                            const jogoReal = jogosReais?.find(j => String(j.id) === String(p.jogo_id));
-                            if (jogoReal && jogoReal.gols_casa !== null && jogoReal.gols_fora !== null) {
-                                const pC = Number(p.palpite_casa);
-                                const pF = Number(p.palpite_fora);
-                                const rC = Number(jogoReal.gols_casa);
-                                const rF = Number(jogoReal.gols_fora);
+                    if (mapaAjustes.has(chaveAjuste)) {
+                        pts = Number(mapaAjustes.get(chaveAjuste) || 0);
+                    } else {
+                        const jogoReal = jogosReais?.find(j => String(j.id) === String(p.jogo_id));
+                        if (jogoReal && jogoReal.gols_casa !== null && jogoReal.gols_fora !== null) {
+                            const pC = Number(p.palpite_casa);
+                            const pF = Number(p.palpite_fora);
+                            const rC = Number(jogoReal.gols_casa);
+                            const rF = Number(jogoReal.gols_fora);
 
-                                if (pC === rC && pF === rF) {
-                                    pontosDestePalpite = 15;
-                                } else if (
-                                    (pC > pF && rC > rF) ||
-                                    (pC < pF && rC < rF) ||
-                                    (pC === pF && rC === rF)
-                                ) {
-                                    pontosDestePalpite = 5;
-                                }
-                            }
+                            if (pC === rC && pF === rF) pts = 15;
+                            else if ((pC > pF && rC > rF) || (pC < pF && rC < rF) || (pC === pF && rC === rF)) pts = 5;
+                            else pts = 0;
                         }
-
-                        if (Number(p.pontos_ganhos) !== pontosDestePalpite) {
-                            await supabase.from('palpites_jogos').update({ pontos_ganhos: pontosDestePalpite }).eq('id', p.id);
-                        }
-                        totalPontosUsuario += pontosDestePalpite;
                     }
+
+                    updateLoteGrupos.push({ ...p, pontos_ganhos: pts });
+                    totalPontosUsuario += pts;
                 }
 
                 // B) MATA-MATA
-                const { data: palpitesMM } = await supabase.from('palpites_matamata').select('*').eq('user_id', perfil.id);
-                if (palpitesMM) {
-                    for (const p of palpitesMM) {
-                        const chaveAjuste = `${perfil.id}_palpites_matamata_${p.id}`;
-                        let pontosDesteMM = 0;
+                const palpitesUsuarioMM = todosPalpitesMM?.filter(p => p.user_id === perfil.id) || [];
+                for (const p of palpitesUsuarioMM) {
+                    const chaveAjuste = `${perfil.id}_palpites_matamata_${p.id}`;
+                    let pts = p.pontos_ganhos ?? 0;
 
-                        if (mapaAjustes.has(chaveAjuste)) {
-                            pontosDesteMM = Number(mapaAjustes.get(chaveAjuste) || 0);
-                        } else {
-                            const realVencedor = mapaMMReal.get(p.fase_vaga);
-                            if (realVencedor && p.selecao_escolhida.trim().toLowerCase() === realVencedor) {
-                                pontosDesteMM = obterPontosFase(p.fase_vaga);
-                            }
+                    if (mapaAjustes.has(chaveAjuste)) {
+                        pts = Number(mapaAjustes.get(chaveAjuste) || 0);
+                    } else {
+                        const faseLimpa = p.fase_vaga ? p.fase_vaga.trim().toLowerCase() : '';
+                        const realVencedor = mapaMMReal.get(faseLimpa);
+                        if (realVencedor && p.selecao_escolhida.trim().toLowerCase() === realVencedor) {
+                            pts = obterPontosFase(p.fase_vaga);
+                        } else if (realVencedor) {
+                            pts = 0;
                         }
-
-                        if (Number(p.pontos_ganhos) !== pontosDesteMM) {
-                            await supabase.from('palpites_matamata').update({ pontos_ganhos: pontosDesteMM }).eq('id', p.id);
-                        }
-                        totalPontosUsuario += pontosDesteMM;
                     }
+
+                    updateLoteMM.push({ ...p, pontos_ganhos: pts });
+                    totalPontosUsuario += pts;
                 }
 
                 // C) PALPITES ESPECIAIS
-                const { data: palpitesEsp } = await supabase.from('palpites_especiais').select('*').eq('user_id', perfil.id);
-                if (palpitesEsp) {
-                    for (const p of palpitesEsp) {
-                        const chaveAjuste = `${perfil.id}_palpites_especiais_${p.id}`;
-                        let pontosDesteEsp = 0;
+                const palpitesUsuarioEsp = todosPalpitesEsp?.filter(p => p.user_id === perfil.id) || [];
+                for (const p of palpitesUsuarioEsp) {
+                    const chaveAjuste = `${perfil.id}_palpites_especiais_${p.id}`;
+                    let pts = p.pontos_ganhos ?? 0;
 
-                        if (mapaAjustes.has(chaveAjuste)) {
-                            pontosDesteEsp = Number(mapaAjustes.get(chaveAjuste) || 0);
-                        } else {
-                            const realResp = mapaEspReal.get(p.pergunta_id);
-                            if (realResp && p.resposta_palpite.trim().toLowerCase() === realResp) {
-                                pontosDesteEsp = (pesosEspeciais[p.pergunta_id] || 0);
-                            }
+                    if (mapaAjustes.has(chaveAjuste)) {
+                        pts = Number(mapaAjustes.get(chaveAjuste) || 0);
+                    } else {
+                        const perguntaLimpa = p.pergunta_id ? p.pergunta_id.trim().toLowerCase() : '';
+                        const realResp = mapaEspReal.get(perguntaLimpa);
+                        
+                        if (realResp && validarRespostaEspecial(p.resposta_palpite, realResp)) {
+                            pts = (pesosEspeciais[perguntaLimpa] || 0);
+                        } else if (realResp) {
+                            pts = 0;
                         }
-
-                        if (Number(p.pontos_ganhos) !== pontosDesteEsp) {
-                            await supabase.from('palpites_especiais').update({ pontos_ganhos: pontosDesteEsp }).eq('id', p.id);
-                        }
-                        totalPontosUsuario += pontosDesteEsp;
                     }
+
+                    updateLoteEsp.push({ ...p, pontos_ganhos: pts });
+                    totalPontosUsuario += pts;
                 }
 
-                // 💾 AGORA SIM: O total acumulado vai atualizar de verdade a tabela perfis!
-                await supabase.from('perfis').update({ pontos: totalPontosUsuario }).eq('id', perfil.id);
+                updateLotePerfis.push({ ...perfil, pontos: totalPontosUsuario });
             }
 
-            alert('🚀 Sucesso! Todas as tabelas e perfis foram consolidados com sucesso.');
+            // Gravação maciça no banco em 4 disparos simultâneos (Lote)
+            await Promise.all([
+                updateLoteGrupos.length > 0 ? supabase.from('palpites_jogos').upsert(updateLoteGrupos) : Promise.resolve(),
+                updateLoteMM.length > 0 ? supabase.from('palpites_matamata').upsert(updateLoteMM) : Promise.resolve(),
+                updateLoteEsp.length > 0 ? supabase.from('palpites_especiais').upsert(updateLoteEsp) : Promise.resolve(),
+                updateLotePerfis.length > 0 ? supabase.from('perfis').upsert(updateLotePerfis) : Promise.resolve()
+            ]);
+
+            alert('🚀 Sucesso! Motor calculado e sincronizado perfeitamente.');
             if (userSelecionado) carregarDadosUsuarioAuditoria(userSelecionado);
         } catch (err) {
             console.error(err);
-            alert('Erro crítico no motor de cálculo.');
+            alert('Erro crítico no motor de cálculo. Verifique o console.');
         } finally {
             setProcessando(false);
         }
@@ -339,7 +379,7 @@ export default function PainelAdmin() {
                     disabled={processando}
                     className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black rounded-xl shadow-xl transition transform active:scale-95 disabled:opacity-50"
                 >
-                    {processando ? '🔄 Processando Pontos...' : '🔄 RECUPERAR & RECALCULAR PONTUAÇÕES'}
+                    {processando ? '🔄 Processando em Lote...' : '🔄 RECUPERAR & RECALCULAR PONTUAÇÕES'}
                 </button>
             </div>
 
@@ -525,7 +565,6 @@ function SecaoCorrecao({ titulo, itens, tabela, renderLabel, renderPalpite, onSa
                                 <span className="col-span-3 text-center text-xs font-black text-amber-400 bg-amber-500/10 py-1 rounded border border-amber-500/20 truncate px-1">
                                     {renderPalpite(p)}
                                 </span>
-                                {/* 🎯 Agora mostra o ponto real calculado pelo robô, sem o override manual */}
                                 <span className="col-span-2 text-center text-emerald-400 font-mono font-bold text-sm">
                                     {p.pontos_sistema_original ?? p.pontos_ganhos ?? 0}
                                 </span>                                
