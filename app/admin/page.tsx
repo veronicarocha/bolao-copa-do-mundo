@@ -19,9 +19,9 @@ function validarRespostaEspecial(respostaParticipante: string, termoValidacao: s
         return texto
             .toLowerCase()
             .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') 
-            .replace(/[^a-z0-9\s]/g, '')     
-            .replace(/\s+/g, ' ')            
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, ' ')
             .trim();
     };
 
@@ -52,12 +52,10 @@ export default function PainelAdmin() {
     const [carregando, setCarregando] = useState(true);
     const [processando, setProcessando] = useState(false);
 
-    // Estados para inputs do Admin (Gabarito)
     const [jogos, setJogos] = useState<any[]>([]);
     const [resultadosMM, setResultadosMM] = useState<Record<string, string>>({});
     const [resultadosEsp, setResultadosEsp] = useState<Record<string, string>>({});
 
-    // Estados para o Bloco de Correção Manual
     const [participantes, setParticipantes] = useState<any[]>([]);
     const [userSelecionado, setUserSelecionado] = useState('');
     const [dados, setDados] = useState<DadosPalpites>({ grupos: [], mm: [], esp: [] });
@@ -82,37 +80,6 @@ export default function PainelAdmin() {
         { id: 'menos_cartoes_selecao', label: '🕊️ Seleção com MENOS cartões (Fair Play)' },
         { id: 'primeiro_zero_a_zero', label: '🚫 Primeiro jogo a terminar em 0 a 0' }
     ];
-
-    useEffect(() => {
-        async function verificarAdminECarregarDados() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { router.push('/'); return; }
-
-            const { data: perfil } = await supabase.from('perfis').select('is_admin').eq('id', user.id).maybeSingle();
-            if (!perfil?.is_admin) { router.push('/dashboard/grupos'); return; }
-
-            setIsAdmin(true);
-
-            const { data: listaJogos } = await supabase.from('jogos').select('*').order('id', { ascending: true });
-            setJogos(listaJogos || []);
-
-            const { data: listaMM } = await supabase.from('resultados_matamata').select('*');
-            const mapaMM: Record<string, string> = {};
-            listaMM?.forEach(x => { if (x.fase_vaga) mapaMM[x.fase_vaga.trim()] = x.selecao_real; });
-            setResultadosMM(mapaMM);
-
-            const { data: listaEsp } = await supabase.from('resultados_especiais').select('*');
-            const mapaEsp: Record<string, string> = {};
-            listaEsp?.forEach(x => { if (x.pergunta_id) mapaEsp[x.pergunta_id.trim()] = x.resposta_real; });
-            setResultadosEsp(mapaEsp);
-
-            const { data: listaUsuarios } = await supabase.from('perfis').select('id, nome').order('nome', { ascending: true });
-            setParticipantes(listaUsuarios || []);
-
-            setCarregando(false);
-        }
-        verificarAdminECarregarDados();
-    }, [router]);
 
     const carregarDadosUsuarioAuditoria = async (userId: string) => {
         setUserSelecionado(userId);
@@ -155,6 +122,37 @@ export default function PainelAdmin() {
         setDados({ grupos: gruposMesclados, mm: mmMesclados, esp: espMesclados });
     };
 
+    useEffect(() => {
+        async function verificarAdminECarregarDados() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { router.push('/'); return; }
+
+            const { data: perfil } = await supabase.from('perfis').select('is_admin').eq('id', user.id).maybeSingle();
+            if (!perfil?.is_admin) { router.push('/dashboard/grupos'); return; }
+
+            setIsAdmin(true);
+
+            const { data: listaJogos } = await supabase.from('jogos').select('*').order('id', { ascending: true });
+            setJogos(listaJogos || []);
+
+            const { data: listaMM } = await supabase.from('resultados_matamata').select('*');
+            const mapaMM: Record<string, string> = {};
+            listaMM?.forEach(x => { if (x.fase_vaga) mapaMM[x.fase_vaga.trim()] = x.selecao_real; });
+            setResultadosMM(mapaMM);
+
+            const { data: listaEsp } = await supabase.from('resultados_especiais').select('*');
+            const mapaEsp: Record<string, string> = {};
+            listaEsp?.forEach(x => { if (x.pergunta_id) mapaEsp[x.pergunta_id.trim()] = x.resposta_real; });
+            setResultadosEsp(mapaEsp);
+
+            const { data: listaUsuarios } = await supabase.from('perfis').select('id, nome').order('nome', { ascending: true });
+            setParticipantes(listaUsuarios || []);
+
+            setCarregando(false);
+        }
+        verificarAdminECarregarDados();
+    }, [router]);
+
     const salvarAjusteManualDB = async (tabela: string, refId: string, valor: number) => {
         if (isNaN(valor) || !userSelecionado) return;
 
@@ -163,7 +161,7 @@ export default function PainelAdmin() {
             referencia_id: String(refId),
             tabela_origem: tabela,
             pontos_ajustados: valor
-        }, { onConflict: 'user_id,referencia_id' });
+        }, { onConflict: 'user_id,tabela_origem,referencia_id' });
 
         if (error) {
             console.error("Erro ao salvar ajuste manual:", error);
@@ -216,29 +214,23 @@ export default function PainelAdmin() {
         await supabase.from('resultados_especiais').upsert({ pergunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
     };
 
-    // 🔥 MOTOR DE ALTA PERFORMANCE (Bulk Operation)
+   // 🔥 MOTOR ANALÍTICO DEFINITIVO (Bypass Limit + Bulk Upsert Integral)
     const rodarCalculoPontuacaoGlobal = async () => {
         setProcessando(true);
         try {
-            // Busca PARALELA para erradicar timeouts (Tempo de resposta < 100ms)
+            // 1. Buscas Globais (Tabelas pequenas, sem risco do limite de 1000 linhas)
             const [
                 { data: jogosReais },
                 { data: mmReal },
                 { data: espReal },
                 { data: ajustesManuais },
-                { data: perfis },
-                { data: todosPalpitesGrupos },
-                { data: todosPalpitesMM },
-                { data: todosPalpitesEsp }
+                { data: perfis }
             ] = await Promise.all([
                 supabase.from('jogos').select('*'),
                 supabase.from('resultados_matamata').select('*'),
                 supabase.from('resultados_especiais').select('*'),
                 supabase.from('pontuacoes_manuais').select('*'),
-                supabase.from('perfis').select('*'),
-                supabase.from('palpites_jogos').select('*'),
-                supabase.from('palpites_matamata').select('*'),
-                supabase.from('palpites_especiais').select('*')
+                supabase.from('perfis').select('*')
             ]);
 
             const mapaMMReal = new Map(mmReal?.map(x => [x.fase_vaga.trim().toLowerCase(), x.selecao_real.trim().toLowerCase()]));
@@ -247,7 +239,7 @@ export default function PainelAdmin() {
 
             const obterPontosFase = (id: string) => {
                 if (id === 'J104' || id === 'J103') return 30;
-                const num = parseInt(id.replace('J', ''));
+                const num = parseInt(id.replace('J', ''), 10);
                 if (num >= 73 && num <= 88) return 5;
                 if (num >= 89 && num <= 96) return 10;
                 if (num >= 97 && num <= 100) return 20;
@@ -255,14 +247,15 @@ export default function PainelAdmin() {
                 return 0;
             };
 
+            // 🌟 PESOS ORIGINAIS RESTAURADOS DA VERSÃO DA TARDE
             const pesosEspeciais: Record<string, number> = {
-                artilheiro_geral: 40, craque_copa: 40, melhor_goleiro: 40, craque_final: 30, lider_assistencias: 30,
-                total_gols: 25, total_vermelhos: 20, primeiro_gol_brasil: 20, artilheiro_brasil: 20, melhor_ataque: 20,
-                melhor_defesa: 20, arbitro_final: 20, primeiro_gol_copa: 20, mais_cartoes_selecao: 15,
-                menos_cartoes_selecao: 15, primeiro_zero_a_zero: 15
+                campeao: 70, vice: 35, terceiro: 20, artilheiro_geral: 40, craque_copa: 40, melhor_goleiro: 40,
+                craque_final: 30, lider_assistencias: 30, total_gols: 25, total_vermelhos: 20, primeiro_gol_brasil: 20,
+                artilheiro_brasil: 20, melhor_ataque: 20, melhor_defesa: 20, arbitro_final: 20, primeiro_gol_copa: 20,
+                mais_cartoes_selecao: 15, menos_cartoes_selecao: 15, primeiro_zero_a_zero: 15
             };
 
-            if (!perfis) throw new Error("Erro na base de dados");
+            if (!perfis) throw new Error("Erro na base de dados de perfis");
 
             const updateLoteGrupos: any[] = [];
             const updateLoteMM: any[] = [];
@@ -271,12 +264,26 @@ export default function PainelAdmin() {
 
             for (const perfil of perfis) {
                 let totalPontosUsuario = 0;
+                let exatos = 0;
+                let acertosVencedor = 0;
+                let especiaisAcertos = 0;
+                let mm16 = 0, mm8 = 0, mm4 = 0, mm2 = 0, mmFin = 0, mmCamp = 0;
+
+                // 🚀 BUSCA ISOLADA (BYPASS DO LIMITE DE 1000 LINHAS DO SUPABASE)
+                const [
+                    { data: pJogos },
+                    { data: pMM },
+                    { data: pEsp }
+                ] = await Promise.all([
+                    supabase.from('palpites_jogos').select('*').eq('user_id', perfil.id),
+                    supabase.from('palpites_matamata').select('*').eq('user_id', perfil.id),
+                    supabase.from('palpites_especiais').select('*').eq('user_id', perfil.id)
+                ]);
 
                 // A) FASE DE GRUPOS
-                const palpitesUsuarioJogos = todosPalpitesGrupos?.filter(p => p.user_id === perfil.id) || [];
-                for (const p of palpitesUsuarioJogos) {
+                for (const p of (pJogos || [])) {
                     const chaveAjuste = `${perfil.id}_palpites_jogos_${p.id}`;
-                    let pts = p.pontos_ganhos ?? 0;
+                    let pts = 0;
 
                     if (mapaAjustes.has(chaveAjuste)) {
                         pts = Number(mapaAjustes.get(chaveAjuste) || 0);
@@ -291,74 +298,124 @@ export default function PainelAdmin() {
                             if (pC === rC && pF === rF) pts = 15;
                             else if ((pC > pF && rC > rF) || (pC < pF && rC < rF) || (pC === pF && rC === rF)) pts = 5;
                             else pts = 0;
+                        } else {
+                            pts = Number(p.pontos_ganhos || 0);
                         }
                     }
 
-                    updateLoteGrupos.push({ ...p, pontos_ganhos: pts });
+                    if (pts === 15) { exatos++; acertosVencedor++; }
+                    else if (pts === 5) { acertosVencedor++; }
+
                     totalPontosUsuario += pts;
+                    
+                    // O spread {...p} manda a linha inteira de volta, zerando as violações de NOT NULL!
+                    updateLoteGrupos.push({ ...p, pontos_ganhos: pts });
                 }
 
                 // B) MATA-MATA
-                const palpitesUsuarioMM = todosPalpitesMM?.filter(p => p.user_id === perfil.id) || [];
-                for (const p of palpitesUsuarioMM) {
+                for (const p of (pMM || [])) {
                     const chaveAjuste = `${perfil.id}_palpites_matamata_${p.id}`;
-                    let pts = p.pontos_ganhos ?? 0;
+                    let pts = 0;
 
                     if (mapaAjustes.has(chaveAjuste)) {
                         pts = Number(mapaAjustes.get(chaveAjuste) || 0);
                     } else {
                         const faseLimpa = p.fase_vaga ? p.fase_vaga.trim().toLowerCase() : '';
                         const realVencedor = mapaMMReal.get(faseLimpa);
-                        if (realVencedor && p.selecao_escolhida.trim().toLowerCase() === realVencedor) {
+                        if (realVencedor && p.selecao_escolhida?.trim().toLowerCase() === realVencedor) {
                             pts = obterPontosFase(p.fase_vaga);
                         } else if (realVencedor) {
                             pts = 0;
+                        } else {
+                            pts = Number(p.pontos_ganhos || 0);
                         }
                     }
 
-                    updateLoteMM.push({ ...p, pontos_ganhos: pts });
+                    if (pts > 0 && p.fase_vaga) {
+                        const faseLimpa = p.fase_vaga.trim().toLowerCase();
+                        const num = parseInt(faseLimpa.replace(/[^\d]/g, ''), 10);
+                        if (num >= 73 && num <= 88) mm16++;
+                        else if (num >= 89 && num <= 96) mm8++;
+                        else if (num >= 97 && num <= 100) mm4++;
+                        else if (num >= 101 && num <= 102) mm2++;
+                        else if (num === 103 || num === 104) {
+                            if (num === 104) mmCamp++;
+                            mmFin++;
+                        }
+                    }
+
                     totalPontosUsuario += pts;
+                    updateLoteMM.push({ ...p, pontos_ganhos: pts });
                 }
 
                 // C) PALPITES ESPECIAIS
-                const palpitesUsuarioEsp = todosPalpitesEsp?.filter(p => p.user_id === perfil.id) || [];
-                for (const p of palpitesUsuarioEsp) {
+                for (const p of (pEsp || [])) {
                     const chaveAjuste = `${perfil.id}_palpites_especiais_${p.id}`;
-                    let pts = p.pontos_ganhos ?? 0;
+                    let pts = 0;
 
                     if (mapaAjustes.has(chaveAjuste)) {
                         pts = Number(mapaAjustes.get(chaveAjuste) || 0);
                     } else {
-                        const perguntaLimpa = p.pergunta_id ? p.pergunta_id.trim().toLowerCase() : '';
+                        const perguntaLimpa = p.pergunta_id ? String(p.pergunta_id).trim().toLowerCase() : '';
                         const realResp = mapaEspReal.get(perguntaLimpa);
-                        
-                        if (realResp && validarRespostaEspecial(p.resposta_palpite, realResp)) {
-                            pts = (pesosEspeciais[perguntaLimpa] || 0);
+
+                        if (realResp && p.resposta_palpite) {
+                            const acertou = validarRespostaEspecial(String(p.resposta_palpite), String(realResp));
+                            if (acertou) {
+                                pts = pesosEspeciais[perguntaLimpa] || 0;
+                            } else {
+                                pts = 0;
+                            }
                         } else if (realResp) {
                             pts = 0;
+                        } else {
+                            pts = Number(p.pontos_ganhos || 0);
                         }
                     }
 
-                    updateLoteEsp.push({ ...p, pontos_ganhos: pts });
+                    if (pts > 0) especiaisAcertos++;
+
                     totalPontosUsuario += pts;
+                    updateLoteEsp.push({ ...p, pontos_ganhos: pts });
                 }
 
-                updateLotePerfis.push({ ...perfil, pontos: totalPontosUsuario });
+                // D) PERFIS - Carrega as métricas avançadas baseadas nos resultados isolados acima
+                updateLotePerfis.push({
+                    ...perfil,
+                    pontos: totalPontosUsuario,
+                    placares_exatos: exatos,
+                    acertos_vencedor: acertosVencedor,
+                    especiais_acertos: especiaisAcertos,
+                    acertos_16avos: mm16,
+                    acertos_oitavas: mm8,
+                    acertos_quartas: mm4,
+                    acertos_semi: mm2,
+                    acertos_finalistas: mmFin,
+                    acertos_campeao: mmCamp
+                });
             }
 
-            // Gravação maciça no banco em 4 disparos simultâneos (Lote)
-            await Promise.all([
-                updateLoteGrupos.length > 0 ? supabase.from('palpites_jogos').upsert(updateLoteGrupos) : Promise.resolve(),
-                updateLoteMM.length > 0 ? supabase.from('palpites_matamata').upsert(updateLoteMM) : Promise.resolve(),
-                updateLoteEsp.length > 0 ? supabase.from('palpites_especiais').upsert(updateLoteEsp) : Promise.resolve(),
-                updateLotePerfis.length > 0 ? supabase.from('perfis').upsert(updateLotePerfis) : Promise.resolve()
-            ]);
+            // ⚡ EXECUTOR EM BLOCOS (CHUNK UPSERT)
+            // Divide as requisições em lotes de 500 para não estourar o limite de payload HTTP do Supabase
+            const executarUpsertEmLotes = async (tabela: string, dados: any[]) => {
+                const TAMANHO_LOTE = 500;
+                for (let i = 0; i < dados.length; i += TAMANHO_LOTE) {
+                    const lote = dados.slice(i, i + TAMANHO_LOTE);
+                    const { error } = await supabase.from(tabela).upsert(lote);
+                    if (error) throw new Error(`Erro upsert em ${tabela}: ${error.message}`);
+                }
+            };
 
-            alert('🚀 Sucesso! Motor calculado e sincronizado perfeitamente.');
+            if (updateLoteGrupos.length > 0) await executarUpsertEmLotes('palpites_jogos', updateLoteGrupos);
+            if (updateLoteMM.length > 0) await executarUpsertEmLotes('palpites_matamata', updateLoteMM);
+            if (updateLoteEsp.length > 0) await executarUpsertEmLotes('palpites_especiais', updateLoteEsp);
+            if (updateLotePerfis.length > 0) await executarUpsertEmLotes('perfis', updateLotePerfis);
+
+            alert('🚀 Sucesso Absoluto! O cálculo varreu 100% dos dados reais do banco e atualizou todas as notas.');
             if (userSelecionado) carregarDadosUsuarioAuditoria(userSelecionado);
-        } catch (err) {
-            console.error(err);
-            alert('Erro crítico no motor de cálculo. Verifique o console.');
+        } catch (err: any) {
+            console.error('❌ CRITICAL ENGINE ERROR:', err);
+            alert(`Erro crítico no processamento com UPDATE: ${err.message || err}`);
         } finally {
             setProcessando(false);
         }
@@ -526,7 +583,7 @@ function SecaoCorrecao({ titulo, itens, tabela, renderLabel, renderPalpite, onSa
     const obterBadgeFase = (faseVaga: string) => {
         if (tabela !== 'palpites_matamata') return null;
 
-        const num = parseInt(faseVaga.replace('J', ''));
+        const num = parseInt(faseVaga.replace('J', ''), 10);
         if (isNaN(num)) return null;
 
         if (faseVaga === 'J104') return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🏆 Final</span>;
@@ -567,7 +624,7 @@ function SecaoCorrecao({ titulo, itens, tabela, renderLabel, renderPalpite, onSa
                                 </span>
                                 <span className="col-span-2 text-center text-emerald-400 font-mono font-bold text-sm">
                                     {p.pontos_sistema_original ?? p.pontos_ganhos ?? 0}
-                                </span>                                
+                                </span>
                                 <input
                                     key={`${p.id}_${p.pontos_ganhos}`}
                                     type="number"
