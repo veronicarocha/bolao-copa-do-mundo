@@ -69,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </span>
                     </div>
 
-                    {/* Abas do Menu <Link href="/dashboard/informacoes" className={linkClasse('/dashboard/informacoes')}> Classificação</Link> *\*/}
+                    {/* Abas do Menu <Link href="/dashboard/informacoes" className={linkClasse('/dashboard/informacoes')}> Classificação</Link> *\c*/}
                     <div className="flex flex-wrap items-center gap-2">
                         <Link href="/dashboard/regras" className={linkClasse('/dashboard/regras')}>📜 Regras</Link>
                                             
@@ -78,6 +78,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <Link href="/dashboard/especiais" className={linkClasse('/dashboard/especiais')}>🔥 Especiais</Link>
                     
                         <Link href="/dashboard/ranking" className={linkClasse('/dashboard/ranking')}>Ranking</Link>
+
+                        <Link href="/dashboard/espiar-jogo" className={linkClasse('/dashboard/espiar-jogo')}> 🕵️‍♂️ Espiar Palpites</Link>
+                        
 
                         {/* Exibe o botão de Administração apenas se for TRUE no banco */}
                         {isAdmin && (
