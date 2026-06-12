@@ -68,7 +68,7 @@ export default function PaginaRanking() {
               🏆 Classificação Geral
             </h1>
 
-            {/* Painel de Legendas (Explicativo) */}
+            {/* Painel de Legendas (Explicativo) 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <p className="text-[11px] text-gray-300">Quantidade de acertos em...</p>
 
@@ -84,7 +84,7 @@ export default function PaginaRanking() {
                 <span className="text-sky-400 font-black text-[10px] bg-sky-500/20 px-1.5 rounded">ESP</span>
                 <span className="text-[11px] text-gray-300">Palpite Especial</span>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Contador de Participantes 
@@ -101,13 +101,13 @@ export default function PaginaRanking() {
               {/* CABEÇALHO ÚNICO */}
               <thead className="sticky top-0 bg-slate-900 z-10 shadow-lg border-b border-white/10">
                 <tr className="text-[10px] uppercase tracking-wider font-bold text-gray-500">
-                  <th className="p-4 w-16">Pos</th>
+                  <th className="p-4 w-16">Posição</th>
                   <th className="p-4 w-24 text-center">Pontos</th>
                   <th className="p-4 w-24 text-center">Ação</th>
                   <th className="p-4 min-w-[200px]">Participante</th>
-                  <th className="p-4 text-center text-blue-400">PE</th>
-                  <th className="p-4 text-center text-sky-400">Res</th>
-                  <th className="p-4 text-center text-purple-400">Esp</th>
+                  <th className="p-4 text-center text-blue-400">Placar Exato</th>
+                  <th className="p-4 text-center text-sky-400">Resultado</th>
+                  <th className="p-4 text-center text-purple-400">Especial</th>
                   <th className="p-4 text-center text-gray-400">16 Avos</th>
                   <th className="p-4 text-center text-indigo-400">Oitavas</th>
                   <th className="p-4 text-center text-pink-400">Quartas</th>
@@ -120,7 +120,7 @@ export default function PaginaRanking() {
               <tbody className="divide-y divide-white/5">
                 {ranking.map((p, index) => {
                   const posicao = index + 1;
-                  const badge = posicao === 1 ? '🥇' : posicao === 2 ? '🥈' : posicao === 3 ? '🥉' : `${posicao}º`;
+                  const badge = posicao === 1 ? '🥇' : posicao === 2 ? '🥈' : posicao === 3 ? '🥉' : posicao === 4 ? '🏅' : `${posicao}º`;
 
                   return (
                     <tr key={p.id} className="hover:bg-white/5 transition text-sm items-center">
