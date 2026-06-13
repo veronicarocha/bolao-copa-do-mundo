@@ -57,7 +57,7 @@ const CALENDARIO_OFICIAL_COMPLETO = [
   { confronto: 'tunisia x japao', data: '20/06', rodada: '2ª Rodada' },
   { confronto: 'holanda x suecia', data: '20/06', rodada: '2ª Rodada' },
   { confronto: 'alemanha x costa do marfim', data: '20/06', rodada: '2ª Rodada' },
-  { confronto: 'equador x curacao', data: '20/06', rodada: '2ª Rodada' },
+  { confronto: 'equador x curacao', data: '20/06', rounded: '2ª Rodada' },
   { confronto: 'espanha x arabia saudita', data: '21/06', rodada: '2ª Rodada' },
   { confronto: 'belgica x ira', data: '21/06', rodada: '2ª Rodada' },
   { confronto: 'uruguai x cabo verde', data: '21/06', rodada: '2ª Rodada' },
@@ -146,11 +146,24 @@ export default function TelaEspiarPalpites() {
 
         // Ordenação fiel ao andamento do campeonato mundial
         listaMapeada.sort((a, b) => a.posicao_cronologica - b.posicao_cronologica);
-
         setJogos(listaMapeada);
 
         if (listaMapeada.length > 0) {
-          setJogoSelecionadoId(listaMapeada[0].id);
+          // 🧠 CAPTURA INTELIGENTE DO DIA ATUAL
+          const hoje = new Date();
+          const dia = String(hoje.getDate()).padStart(2, '0');
+          const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+          const dataHojeFormatada = `${dia}/${mes}`; // Ex: "13/06"
+
+          // Procura o primeiro confronto da lista ordenada que aconteça na data de hoje
+          const jogoDeHoje = listaMapeada.find(j => j.data_formatada === dataHojeFormatada);
+
+          if (jogoDeHoje) {
+            setJogoSelecionadoId(jogoDeHoje.id);
+          } else {
+            // Fallback padrão se não houver jogos hoje
+            setJogoSelecionadoId(listaMapeada[0].id);
+          }
         }
       } catch (err) {
         console.error('Erro ao mapear cronograma analítico:', err);
@@ -186,7 +199,6 @@ export default function TelaEspiarPalpites() {
             nome_participante: perfil.nome || 'Sem Nome',
             palpite_casa: palpiteUsuario ? palpiteUsuario.palpite_casa : '-',
             palpite_fora: palpiteUsuario ? palpiteUsuario.palpite_fora : '-',
-            points_ganhos: palpiteUsuario ? palpiteUsuario.pontos_ganhos : null,
             pontos_ganhos: palpiteUsuario ? palpiteUsuario.pontos_ganhos : null
           };
         });
@@ -215,7 +227,7 @@ export default function TelaEspiarPalpites() {
         <div className="border-b border-white/10 pb-6 space-y-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-amber-400">🕵️‍♂️ Mural de Palpites por Jogo</h1>
-            <p className="text-xs md:text-sm text-gray-400 font-medium">Espie os palpites e monitore a pontuação em tempo real.</p>
+            <p className="text-xs md:text-sm text-gray-400 font-medium">Espie os palpites e ligue o secador</p>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -223,7 +235,7 @@ export default function TelaEspiarPalpites() {
             <select
               value={jogoSelecionadoId}
               onChange={(e) => setJogoSelecionadoId(e.target.value)}
-              className="w-full bg-slate-950 border border-white/20 p-4 rounded-xl text-white font-bold outline-none focus:border-amber-500 shadow-xl font-mono text-sm"
+              className="w-full bg-slate-950 border border-white/20 py-2 px-3 rounded-xl text-white font-bold outline-none focus:border-amber-500 shadow-xl font-mono text-xs"
             >
               {jogos.map((j) => (
                 <option key={j.id} value={j.id}>

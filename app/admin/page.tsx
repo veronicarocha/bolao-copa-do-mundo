@@ -214,7 +214,7 @@ export default function PainelAdmin() {
         await supabase.from('resultados_especiais').upsert({ pergunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
     };
 
-   // 🔥 MOTOR ANALÍTICO DEFINITIVO (Bypass Limit + Bulk Upsert Integral)
+   // 🔥 MOTOR ANALÍTICO DEFINITIVO (Bypass Limit + Bulk Upsert Integral + Ajuste de Contagem Duplicada)
     const rodarCalculoPontuacaoGlobal = async () => {
         setProcessando(true);
         try {
@@ -247,7 +247,6 @@ export default function PainelAdmin() {
                 return 0;
             };
 
-            // 🌟 PESOS ORIGINAIS RESTAURADOS DA VERSÃO DA TARDE
             const pesosEspeciais: Record<string, number> = {
                 campeao: 70, vice: 35, terceiro: 20, artilheiro_geral: 40, craque_copa: 40, melhor_goleiro: 40,
                 craque_final: 30, lider_assistencias: 30, total_gols: 25, total_vermelhos: 20, primeiro_gol_brasil: 20,
@@ -265,11 +264,10 @@ export default function PainelAdmin() {
             for (const perfil of perfis) {
                 let totalPontosUsuario = 0;
                 let exatos = 0;
-                let acertosVencedor = 0;
+                let acertosVencedor = 0; // Contagem bruta inicial
                 let especiaisAcertos = 0;
                 let mm16 = 0, mm8 = 0, mm4 = 0, mm2 = 0, mmFin = 0, mmCamp = 0;
 
-                // 🚀 BUSCA ISOLADA (BYPASS DO LIMITE DE 1000 LINHAS DO SUPABASE)
                 const [
                     { data: pJogos },
                     { data: pMM },
@@ -307,8 +305,6 @@ export default function PainelAdmin() {
                     else if (pts === 5) { acertosVencedor++; }
 
                     totalPontosUsuario += pts;
-                    
-                    // O spread {...p} manda a linha inteira de volta, zerando as violações de NOT NULL!
                     updateLoteGrupos.push({ ...p, pontos_ganhos: pts });
                 }
 
@@ -379,12 +375,13 @@ export default function PainelAdmin() {
                     updateLoteEsp.push({ ...p, pontos_ganhos: pts });
                 }
 
-                // D) PERFIS - Carrega as métricas avançadas baseadas nos resultados isolados acima
+                // D) PERFIS - 🌟 SUBTRAÇÃO APLICADA DIRETAMENTE NA GRAVAÇÃO DO PERFIL 🌟
                 updateLotePerfis.push({
                     ...perfil,
                     pontos: totalPontosUsuario,
                     placares_exatos: exatos,
-                    acertos_vencedor: acertosVencedor,
+                    // Subtrai os exatos da contagem bruta para registrar APENAS o acerto puro de vencedor/empate
+                    acertos_vencedor: acertosVencedor - exatos,
                     especiais_acertos: especiaisAcertos,
                     acertos_16avos: mm16,
                     acertos_oitavas: mm8,
@@ -396,8 +393,7 @@ export default function PainelAdmin() {
             }
 
             // ⚡ EXECUTOR EM BLOCOS (CHUNK UPSERT)
-            // Divide as requisições em lotes de 500 para não estourar o limite de payload HTTP do Supabase
-            const executarUpsertEmLotes = async (tabela: string, dados: any[]) => {
+            const ejecutarUpsertEmLotes = async (tabela: string, dados: any[]) => {
                 const TAMANHO_LOTE = 500;
                 for (let i = 0; i < dados.length; i += TAMANHO_LOTE) {
                     const lote = dados.slice(i, i + TAMANHO_LOTE);
@@ -406,10 +402,10 @@ export default function PainelAdmin() {
                 }
             };
 
-            if (updateLoteGrupos.length > 0) await executarUpsertEmLotes('palpites_jogos', updateLoteGrupos);
-            if (updateLoteMM.length > 0) await executarUpsertEmLotes('palpites_matamata', updateLoteMM);
-            if (updateLoteEsp.length > 0) await executarUpsertEmLotes('palpites_especiais', updateLoteEsp);
-            if (updateLotePerfis.length > 0) await executarUpsertEmLotes('perfis', updateLotePerfis);
+            if (updateLoteGrupos.length > 0) await ejecutarUpsertEmLotes('palpites_jogos', updateLoteGrupos);
+            if (updateLoteMM.length > 0) await ejecutarUpsertEmLotes('palpites_matamata', updateLoteMM);
+            if (updateLoteEsp.length > 0) await ejecutarUpsertEmLotes('palpites_especiais', updateLoteEsp);
+            if (updateLotePerfis.length > 0) await ejecutarUpsertEmLotes('perfis', updateLotePerfis);
 
             alert('🚀 Sucesso Absoluto! O cálculo varreu 100% dos dados reais do banco e atualizou todas as notas.');
             if (userSelecionado) carregarDadosUsuarioAuditoria(userSelecionado);
