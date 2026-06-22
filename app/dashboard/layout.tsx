@@ -69,19 +69,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </span>
                     </div>
 
-                    {/* Abas do Menu <Link href="/dashboard/informacoes" className={linkClasse('/dashboard/informacoes')}> Classificação</Link> *\c*/}
+                    {/* Abas do Menu Reorganizadas */}
                     <div className="flex flex-wrap items-center gap-2">
                         <Link href="/dashboard/regras" className={linkClasse('/dashboard/regras')}>📜 Regras</Link>
-                                            
-                        <Link href="/dashboard/grupos" className={linkClasse('/dashboard/grupos')}>Fase de Grupos</Link>
-                        <Link href="/dashboard/matamata" className={linkClasse('/dashboard/matamata')}>Mata-Mata</Link>
-                        <Link href="/dashboard/especiais" className={linkClasse('/dashboard/especiais')}>🔥 Especiais</Link>
-                    
-                        <Link href="/dashboard/ranking" className={linkClasse('/dashboard/ranking')}>Ranking</Link>
-
-                        <Link href="/dashboard/espiar-jogo" className={linkClasse('/dashboard/espiar-jogo')}> 🕵️‍♂️ Espiar Palpites</Link>
                         
+                        {/* 🎯 Dropdown: Meus Palpites */}
+                        <div className="relative group">
+                            <button className="px-3 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition flex items-center gap-1">
+                                🎯 Meus Palpites <span className="text-[10px] text-gray-500 group-hover:text-white transition">▼</span>
+                            </button>
+                            
+                            {/* Menu que flutua ao passar o mouse (Hover) */}
+                            <div className="absolute left-0 mt-1 w-48 bg-slate-950 border border-white/10 rounded-xl p-1.5 shadow-2xl hidden group-hover:block z-50 animate-fadeIn">
+                                <Link href="/dashboard/grupos" className={`${linkClasse('/dashboard/grupos')} w-full block text-left px-3 py-2 rounded-lg text-xs`}>
+                                    Fase de Grupos
+                                </Link>
+                                <Link href="/dashboard/matamata" className={`${linkClasse('/dashboard/matamata')} w-full block text-left px-3 py-2 rounded-lg text-xs mt-1`}>
+                                    Mata-Mata
+                                </Link>
+                                <Link href="/dashboard/especiais" className={`${linkClasse('/dashboard/especiais')} w-full block text-left px-3 py-2 rounded-lg text-xs mt-1`}>
+                                    🔥 Especiais
+                                </Link>
+                            </div>
+                        </div>
+                        <Link href="/dashboard/ranking" className={linkClasse('/dashboard/ranking')}>🏆 Ranking</Link>
 
+                        {/* 📊 Seção de Análise / Auditoria Geral */}
+                        <Link href="/dashboard/espiar-jogo" className={linkClasse('/dashboard/espiar-jogo')}>🕵️‍♂️ Espiar Palpites</Link>
+                        <Link href="/dashboard/estatisticas-matamata" className={linkClasse('/dashboard/estatisticas-matamata')}>📊 Estatísticas</Link>
+                        
                         {/* Exibe o botão de Administração apenas se for TRUE no banco */}
                         {isAdmin && (
                             <Link href="/admin" className="px-3 py-2 rounded-lg text-sm font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition">

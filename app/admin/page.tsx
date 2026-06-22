@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import GerenciadorFasesAdmin from './gerenciadorFases';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,6 @@ interface DadosPalpites {
     esp: any[];
 }
 
-// 🧮 Motor de Validação Avançado por Contenção de Termos e Busca Aproximada
 function validarRespostaEspecial(respostaParticipante: string, termoValidacao: string): boolean {
     if (!respostaParticipante || !termoValidacao) return false;
 
@@ -51,6 +51,7 @@ export default function PainelAdmin() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [carregando, setCarregando] = useState(true);
     const [processando, setProcessando] = useState(false);
+    const [tabAtiva, setTabAtiva] = useState<'gabaritos_gerais' | 'fases_checkboxes'>('gabaritos_gerais');
 
     const [jogos, setJogos] = useState<any[]>([]);
     const [resultadosMM, setResultadosMM] = useState<Record<string, string>>({});
@@ -121,6 +122,21 @@ export default function PainelAdmin() {
 
         setDados({ grupos: gruposMesclados, mm: mmMesclados, esp: espMesclados });
     };
+
+    function removerAcentos(str: string): string {
+        if (!str) return '';
+        let texto = str.toLowerCase();
+        const de = "áàâãäéèêëíìîïóòôõöúùûüçñ";
+        const para = "aaaaaeeeeiiiiooooouuuucn";
+        for (let i = 0; i < de.length; i++) {
+            texto = texto.split(de[i]).join(para[i]);
+        }
+        texto = texto.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim();
+        if (texto === 'ri do ira') return 'ira';
+        if (texto === 'tchequia') return 'republica tcheca';
+        if (texto === 'curacao' || texto === 'curacau') return 'curacao';
+        return texto;
+    }
 
     useEffect(() => {
         async function verificarAdminECarregarDados() {
@@ -214,38 +230,35 @@ export default function PainelAdmin() {
         await supabase.from('resultados_especiais').upsert({ pergunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
     };
 
-   // 🔥 MOTOR ANALÍTICO DEFINITIVO (Bypass Limit + Bulk Upsert Integral + Ajuste de Contagem Duplicada)
+    // 🔥 MOTOR ANALÍTICO DEFINITIVO CONECTADO À NOVA LISTA DE CHECKBOXES
     const rodarCalculoPontuacaoGlobal = async () => {
         setProcessando(true);
         try {
-            // 1. Buscas Globais (Tabelas pequenas, sem risco do limite de 1000 linhas)
             const [
                 { data: jogosReais },
-                { data: mmReal },
                 { data: espReal },
                 { data: ajustesManuais },
-                { data: perfis }
+                { data: perfis },
+                { data: fasesReais } // 🌟 Puxa a nova lista oficial por checkboxes
             ] = await Promise.all([
                 supabase.from('jogos').select('*'),
-                supabase.from('resultados_matamata').select('*'),
                 supabase.from('resultados_especiais').select('*'),
                 supabase.from('pontuacoes_manuais').select('*'),
-                supabase.from('perfis').select('*')
+                supabase.from('perfis').select('*'),
+                supabase.from('resultados_fases_reais').select('*')
             ]);
 
-            const mapaMMReal = new Map(mmReal?.map(x => [x.fase_vaga.trim().toLowerCase(), x.selecao_real.trim().toLowerCase()]));
+            // Mapeamentos analíticos rápidos por Sets limpos
+            // Mapeamentos analíticos rápidos por Sets limpos com tipagem explícita (s: string)
+            const dezoitoReais = new Set(fasesReais?.find(f => f.fase === 'dezesseis_avos')?.selecoes.map((s: string) => removerAcentos(s)) || []);
+            const oitavasReal = new Set(fasesReais?.find(f => f.fase === 'oitavas')?.selecoes.map((s: string) => removerAcentos(s)) || []);
+            const quartasReal = new Set(fasesReais?.find(f => f.fase === 'quartas')?.selecoes.map((s: string) => removerAcentos(s)) || []);
+            const semiReal = new Set(fasesReais?.find(f => f.fase === 'semi')?.selecoes.map((s: string) => removerAcentos(s)) || []);
+            const finalReal = new Set(fasesReais?.find(f => f.fase === 'finalistas')?.selecoes.map((s: string) => removerAcentos(s)) || []);
+            const campeaoReal = new Set(fasesReais?.find(f => f.fase === 'campeao')?.selecoes.map((s: string) => removerAcentos(s)) || []);
+
             const mapaEspReal = new Map(espReal?.map(x => [x.pergunta_id.trim().toLowerCase(), x.resposta_real.trim()]));
             const mapaAjustes = new Map(ajustesManuais?.map(x => [`${x.user_id}_${x.tabela_origem}_${x.referencia_id}`, x.pontos_ajustados]));
-
-            const obterPontosFase = (id: string) => {
-                if (id === 'J104' || id === 'J103') return 30;
-                const num = parseInt(id.replace('J', ''), 10);
-                if (num >= 73 && num <= 88) return 5;
-                if (num >= 89 && num <= 96) return 10;
-                if (num >= 97 && num <= 100) return 20;
-                if (num >= 101 && num <= 102) return 25;
-                return 0;
-            };
 
             const pesosEspeciais: Record<string, number> = {
                 campeao: 70, vice: 35, terceiro: 20, artilheiro_geral: 40, craque_copa: 40, melhor_goleiro: 40,
@@ -264,7 +277,7 @@ export default function PainelAdmin() {
             for (const perfil of perfis) {
                 let totalPontosUsuario = 0;
                 let exatos = 0;
-                let acertosVencedor = 0; // Contagem bruta inicial
+                let acertosVencedor = 0;
                 let especiaisAcertos = 0;
                 let mm16 = 0, mm8 = 0, mm4 = 0, mm2 = 0, mmFin = 0, mmCamp = 0;
 
@@ -308,22 +321,35 @@ export default function PainelAdmin() {
                     updateLoteGrupos.push({ ...p, pontos_ganhos: pts });
                 }
 
-                // B) MATA-MATA
+                // B) MATA-MATA REESCRITO POR CONTENÇÃO DE LISTA DE PRESENÇA
                 for (const p of (pMM || [])) {
                     const chaveAjuste = `${perfil.id}_palpites_matamata_${p.id}`;
                     let pts = 0;
 
                     if (mapaAjustes.has(chaveAjuste)) {
                         pts = Number(mapaAjustes.get(chaveAjuste) || 0);
-                    } else {
+                    } else if (p.selecao_escolhida) {
+                        const selecaoApostada = removerAcentos(p.selecao_escolhida);
                         const faseLimpa = p.fase_vaga ? p.fase_vaga.trim().toLowerCase() : '';
-                        const realVencedor = mapaMMReal.get(faseLimpa);
-                        if (realVencedor && p.selecao_escolhida?.trim().toLowerCase() === realVencedor) {
-                            pts = obterPontosFase(p.fase_vaga);
-                        } else if (realVencedor) {
-                            pts = 0;
-                        } else {
-                            pts = Number(p.pontos_ganhos || 0);
+                        const numJogo = parseInt(faseLimpa.replace(/[^\d]/g, ''), 10);
+
+                        if (numJogo >= 73 && numJogo <= 88) {
+                            if (dezoitoReais.has(selecaoApostada)) pts = 5;
+                        } else if (numJogo >= 89 && numJogo <= 96) {
+                            if (oitavasReal.has(selecaoApostada)) pts = 10;
+                        } else if (numJogo >= 97 && numJogo <= 100) {
+                            if (quartasReal.has(selecaoApostada)) pts = 20;
+                        } else if (numJogo === 101 || numJogo === 102) {
+                            if (semiReal.has(selecaoApostada)) pts = 25;
+                        } else if (numJogo === 104) {
+                            if (faseLimpa.includes('campeao')) {
+                                if (campeaoReal.has(selecaoApostada)) pts = 30;
+                            } else {
+                                if (finalReal.has(selecaoApostada)) pts = 30;
+                            }
+                        } else if (numJogo === 103) {
+                            // 3º lugar se aplica como finalista de lista secundária
+                            if (finalReal.has(selecaoApostada)) pts = 30;
                         }
                     }
 
@@ -335,7 +361,7 @@ export default function PainelAdmin() {
                         else if (num >= 97 && num <= 100) mm4++;
                         else if (num >= 101 && num <= 102) mm2++;
                         else if (num === 103 || num === 104) {
-                            if (num === 104) mmCamp++;
+                            if (faseLimpa.includes('campeao')) mmCamp++;
                             mmFin++;
                         }
                     }
@@ -375,12 +401,10 @@ export default function PainelAdmin() {
                     updateLoteEsp.push({ ...p, pontos_ganhos: pts });
                 }
 
-                // D) PERFIS - 🌟 SUBTRAÇÃO APLICADA DIRETAMENTE NA GRAVAÇÃO DO PERFIL 🌟
                 updateLotePerfis.push({
                     ...perfil,
                     pontos: totalPontosUsuario,
                     placares_exatos: exatos,
-                    // Subtrai os exatos da contagem bruta para registrar APENAS o acerto puro de vencedor/empate
                     acertos_vencedor: acertosVencedor - exatos,
                     especiais_acertos: especiaisAcertos,
                     acertos_16avos: mm16,
@@ -392,7 +416,6 @@ export default function PainelAdmin() {
                 });
             }
 
-            // ⚡ EXECUTOR EM BLOCOS (CHUNK UPSERT)
             const ejecutarUpsertEmLotes = async (tabela: string, dados: any[]) => {
                 const TAMANHO_LOTE = 500;
                 for (let i = 0; i < dados.length; i += TAMANHO_LOTE) {
@@ -407,7 +430,7 @@ export default function PainelAdmin() {
             if (updateLoteEsp.length > 0) await ejecutarUpsertEmLotes('palpites_especiais', updateLoteEsp);
             if (updateLotePerfis.length > 0) await ejecutarUpsertEmLotes('perfis', updateLotePerfis);
 
-            alert('🚀 Sucesso Absoluto! O cálculo varreu 100% dos dados reais do banco e atualizou todas as notas.');
+            alert('🚀 Motor de Presença Rodado com Sucesso! Pontuações sincronizadas em toda a base.');
             if (userSelecionado) carregarDadosUsuarioAuditoria(userSelecionado);
         } catch (err: any) {
             console.error('❌ CRITICAL ENGINE ERROR:', err);
@@ -427,93 +450,116 @@ export default function PainelAdmin() {
                     <h1 className="text-3xl font-black text-amber-400 tracking-tight">👑 Painel de Administração Geral</h1>
                     <p className="text-sm text-gray-400 mt-1">Insira os resultados reais da Copa do Mundo e processe o motor de pontuação.</p>
                 </div>
-                <button
-                    onClick={rodarCalculoPontuacaoGlobal}
-                    disabled={processando}
-                    className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black rounded-xl shadow-xl transition transform active:scale-95 disabled:opacity-50"
-                >
-                    {processando ? '🔄 Processando em Lote...' : '🔄 RECUPERAR & RECALCULAR PONTUAÇÕES'}
-                </button>
+
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    {/* Chaves de Seleção de Abas */}
+                    <div className="flex bg-slate-950 p-1 rounded-xl border border-white/10 gap-1 font-bold text-xs shrink-0">
+                        <button
+                            onClick={() => setTabAtiva('gabaritos_gerais')}
+                            className={`px-4 py-2.5 rounded-lg transition ${tabAtiva === 'gabaritos_gerais' ? 'bg-white/10 text-amber-400 font-black' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            📋 Painel de Jogos
+                        </button>
+                        <button
+                            onClick={() => setTabAtiva('fases_checkboxes')}
+                            className={`px-4 py-2.5 rounded-lg transition ${tabAtiva === 'fases_checkboxes' ? 'bg-white/10 text-amber-400 font-black' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            ✅ Checkboxes Mata-Mata
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={rodarCalculoPontuacaoGlobal}
+                        disabled={processando}
+                        className="px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black rounded-xl shadow-xl transition transform active:scale-95 disabled:opacity-50 text-xs uppercase tracking-wider"
+                    >
+                        {processando ? '🔄 Processando em Lote...' : '🔄 Recalcular Pontuações'}
+                    </button>
+                </div>
             </div>
 
-            {/* GRID DE GABARITOS OFICIAIS */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* JOGOS */}
-                <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4 max-h-[600px] overflow-y-auto">
-                    <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-emerald-400">⚽ Resultados Fase de Grupos</h2>
-                    <div className="space-y-3">
-                        {jogos?.map((j) => (
-                            <div key={j.id} className="flex items-center justify-between bg-black/30 p-2.5 rounded-xl border border-white/5 text-xs">
-                                <span className="text-gray-500 font-mono">G{j.grupo}</span>
-                                <div className="flex items-center gap-2 w-3/4 justify-end">
-                                    <span className="truncate font-medium">{j.time_casa}</span>
-                                    <input
-                                        type="number"
-                                        defaultValue={j.gols_casa ?? ''}
-                                        onBlur={(e) => salvarPlacarJogo(j.id, 'gols_casa', e.target.value)}
-                                        className="w-10 bg-slate-900 border border-white/10 text-center rounded p-1 font-black"
-                                    />
-                                    <span className="text-gray-600">x</span>
-                                    <input
-                                        type="number"
-                                        defaultValue={j.gols_fora ?? ''}
-                                        onBlur={(e) => salvarPlacarJogo(j.id, 'gols_fora', e.target.value)}
-                                        className="w-10 bg-slate-900 border border-white/10 text-center rounded p-1 font-black"
-                                    />
-                                    <span className="truncate font-medium w-24 text-left">{j.time_fora}</span>
+            {/* CONTEÚDO DINÂMICO SEPARADO POR ABAS */}
+            {tabAtiva === 'fases_checkboxes' ? (
+                <GerenciadorFasesAdmin />
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* JOGOS */}
+                    <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4 max-h-[600px] overflow-y-auto">
+                        <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-emerald-400">⚽ Resultados Fase de Grupos</h2>
+                        <div className="space-y-3">
+                            {jogos?.map((j) => (
+                                <div key={j.id} className="flex items-center justify-between bg-black/30 p-2.5 rounded-xl border border-white/5 text-xs">
+                                    <span className="text-gray-500 font-mono">G{j.grupo}</span>
+                                    <div className="flex items-center gap-2 w-3/4 justify-end">
+                                        <span className="truncate font-medium">{j.time_casa}</span>
+                                        <input
+                                            type="number"
+                                            defaultValue={j.gols_casa ?? ''}
+                                            onBlur={(e) => salvarPlacarJogo(j.id, 'gols_casa', e.target.value)}
+                                            className="w-10 bg-slate-900 border border-white/10 text-center rounded p-1 font-black"
+                                        />
+                                        <span className="text-gray-600">x</span>
+                                        <input
+                                            type="number"
+                                            defaultValue={j.gols_fora ?? ''}
+                                            onBlur={(e) => salvarPlacarJogo(j.id, 'gols_fora', e.target.value)}
+                                            className="w-10 bg-slate-900 border border-white/10 text-center rounded p-1 font-black"
+                                        />
+                                        <span className="truncate font-medium w-24 text-left">{j.time_fora}</span>
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* MATA-MATA LEGADO E ESPECIAIS */}
+                    <div className="space-y-8">
+                        <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-blue-400">⚡ Resultados Oficiais Mata-Mata</h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs max-h-[250px] overflow-y-auto pr-1">
+                                {Array.from({ length: 32 }, (_, i) => `J${73 + i}`).map(id => (
+                                    <div key={id} className="flex items-center justify-between bg-black/20 p-2 rounded-lg border border-white/5">
+                                        <span className="font-bold text-gray-400">
+                                            {id === 'J104' ? '🏆 Final (J104)' : id === 'J103' ? '🥉 3º Lugar (J103)' : `${id}:`}
+                                        </span>
+                                        <input
+                                            type="text"
+                                            placeholder="Seleção Vencedora"
+                                            value={resultadosMM[id] || ''}
+                                            onChange={(e) => {
+                                                setResultadosMM(p => ({ ...p, [id]: e.target.value }));
+                                                salvarResultadoMM(id, e.target.value);
+                                            }}
+                                            className="bg-slate-900 border border-white/10 p-1.5 rounded text-right w-36 font-semibold outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* MATA-MATA E ESPECIAIS */}
-                <div className="space-y-8">
-                    <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4">
-                        <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-blue-400">⚡ Resultados Oficiais Mata-Mata</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs max-h-[250px] overflow-y-auto pr-1">
-                            {Array.from({ length: 32 }, (_, i) => `J${73 + i}`).map(id => (
-                                <div key={id} className="flex items-center justify-between bg-black/20 p-2 rounded-lg border border-white/5">
-                                    <span className="font-bold text-gray-400">
-                                        {id === 'J104' ? '🏆 Final (J104)' : id === 'J103' ? '🥉 3º Lugar (J103)' : `${id}:`}
-                                    </span>
-                                    <input
-                                        type="text"
-                                        placeholder="Seleção Vencedora"
-                                        value={resultadosMM[id] || ''}
-                                        onChange={(e) => {
-                                            setResultadosMM(p => ({ ...p, [id]: e.target.value }));
-                                            salvarResultadoMM(id, e.target.value);
-                                        }}
-                                        className="bg-slate-900 border border-white/10 p-1.5 rounded text-right w-36 font-semibold outline-none focus:border-blue-500"
-                                    />
-                                </div>
-                            ))}
                         </div>
-                    </div>
 
-                    <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4">
-                        <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-purple-400">🔥 Gabarito Palpites Especiais</h2>
-                        <div className="space-y-3 text-xs max-h-[250px] overflow-y-auto pr-1">
-                            {CATEGORIAS_ESPECIAIS.map(c => (
-                                <div key={c.id} className="flex items-center justify-between bg-black/20 p-2 rounded-lg border border-white/5 gap-4">
-                                    <span className="font-semibold text-gray-300">{c.label}:</span>
-                                    <input
-                                        type="text"
-                                        placeholder="Resposta Correta"
-                                        value={resultadosEsp[c.id] || ''}
-                                        onChange={(e) => {
-                                            setResultadosEsp(p => ({ ...p, [c.id]: e.target.value }));
-                                            salvarResultadoEsp(c.id, e.target.value);
-                                        }}
-                                        className="bg-slate-900 border border-white/10 p-1.5 rounded text-right w-44 font-semibold outline-none focus:border-purple-500"
-                                    />
-                                </div>
-                            ))}
+                        <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-purple-400">🔥 Gabarito Palpites Especiais</h2>
+                            <div className="space-y-3 text-xs max-h-[250px] overflow-y-auto pr-1">
+                                {CATEGORIAS_ESPECIAIS.map(c => (
+                                    <div key={c.id} className="flex items-center justify-between bg-black/20 p-2 rounded-lg border border-white/5 gap-4">
+                                        <span className="font-semibold text-gray-300">{c.label}:</span>
+                                        <input
+                                            type="text"
+                                            placeholder="Resposta Correta"
+                                            value={resultadosEsp[c.id] || ''}
+                                            onChange={(e) => {
+                                                setResultadosEsp(p => ({ ...p, [c.id]: e.target.value }));
+                                                salvarResultadoEsp(c.id, e.target.value);
+                                            }}
+                                            className="bg-slate-900 border border-white/10 p-1.5 rounded text-right w-44 font-semibold outline-none focus:border-purple-500"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* SEÇÃO DE AUDITORIA E CORREÇÃO MANUAL */}
             <div className="bg-slate-950 p-6 rounded-2xl border border-amber-500/20 mt-10">
@@ -524,6 +570,7 @@ export default function PainelAdmin() {
                     value={userSelecionado}
                 >
                     <option value="">Selecione um participante para auditar...</option>
+                    <option value="all_users" disabled>Todos os Participantes Sincronizados</option>
                     {participantes?.map(u => <option key={u.id} value={u.id}>{u.nome || 'Sem Nome'}</option>)}
                 </select>
 
