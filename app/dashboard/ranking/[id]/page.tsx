@@ -1,9 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
-// 🔥 Força o Next.js a quebrar caches agressivos de páginas estáticas
 export const dynamic = 'force-dynamic';
 
 interface Jogo {
@@ -28,106 +27,90 @@ interface Perfil {
   pontos: number;
 }
 
-// 🧮 Função de Higienização e Equivalência de Países (Ordem Corrigida)
 function removerAcentos(str: string): string {
   if (!str) return '';
-  
   let texto = str.toLowerCase();
-
   const de = "áàâãäéèêëíìîïóòôõöúùûüçñ";
   const para = "aaaaaeeeeiiiiooooouuuucn";
   for (let i = 0; i < de.length; i++) {
     texto = texto.split(de[i]).join(para[i]);
   }
-
-  texto = texto.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim();
-
-  if (texto === 'ri do ira') return 'ira';
-  if (texto === 'tchequia') return 'republica tcheca';
-  if (texto === 'curacao' || texto === 'curacau') return 'curacao';
-  
-  return texto;
+  return texto.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim();
 }
 
-// 🗓️ Calendário Oficial Normalizado
 const CALENDARIO_OFICIAL_COMPLETO = [
-  // 1ª Rodada
-  { confronto: 'mexico x africa do sul', data: '11/06', rodada: '1ª Rodada' },
-  { confronto: 'coreia do sul x republica tcheca', data: '11/06', rodada: '1ª Rodada' },
-  { confronto: 'canada x bosnia', data: '12/06', rodada: '1ª Rodada' },
-  { confronto: 'eua x paraguai', data: '12/06', rodada: '1ª Rodada' },
-  { confronto: 'catar x suica', data: '13/06', rodada: '1ª Rodada' },
-  { confronto: 'brasil x marrocos', data: '13/06', rodada: '1ª Rodada' },
-  { confronto: 'haiti x escocia', data: '13/06', rodada: '1ª Rodada' },
-  { confronto: 'australia x turquia', data: '13/06', rodada: '1ª Rodada' },
-  { confronto: 'alemanha x curacao', data: '14/06', rodada: '1ª Rodada' },
-  { confronto: 'costa do marfim x equador', data: '14/06', rodada: '1ª Rodada' },
-  { confronto: 'holanda x japao', data: '14/06', rodada: '1ª Rodada' },
-  { confronto: 'suecia x tunisia', data: '14/06', rodada: '1ª Rodada' },
-  { confronto: 'espanha x cabo verde', data: '15/06', rodada: '1ª Rodada' },
-  { confronto: 'arabia saudita x uruguai', data: '15/06', rodada: '1ª Rodada' },
-  { confronto: 'belgica x egito', data: '15/06', rodada: '1ª Rodada' },
-  { confronto: 'ira x nova zelandia', data: '15/06', rodada: '1ª Rodada' },
-  { confronto: 'austria x jordania', data: '16/06', rodada: '1ª Rodada' },
-  { confronto: 'franca x senegal', data: '16/06', rodada: '1ª Rodada' },
-  { confronto: 'iraque x noruega', data: '16/06', rodada: '1ª Rodada' },
-  { confronto: 'argentina x argelia', data: '16/06', rodada: '1ª Rodada' },
-  { confronto: 'portugal x rd do congo', data: '17/06', rodada: '1ª Rodada' },
-  { confronto: 'inglaterra x croacia', data: '17/06', rodada: '1ª Rodada' },
-  { confronto: 'gana x panama', data: '17/06', rodada: '1ª Rodada' },
-  { confronto: 'uzbequistao x colombia', data: '17/06', rodada: '1ª Rodada' },
-  
-  // 2ª Rodada
-  { confronto: 'republica tcheca x africa do sul', data: '18/06', rodada: '2ª Rodada' },
-  { confronto: 'suica x bosnia', data: '18/06', rodada: '2ª Rodada' },
-  { confronto: 'canada x catar', data: '18/06', rodada: '2ª Rodada' },
-  { confronto: 'mexico x coreia do sul', data: '18/06', rodada: '2ª Rodada' },
-  { confronto: 'turquia x paraguai', data: '19/06', rodada: '2ª Rodada' },
-  { confronto: 'eua x australia', data: '19/06', rodada: '2ª Rodada' },
-  { confronto: 'escocia x marrocos', data: '19/06', rodada: '2ª Rodada' },
-  { confronto: 'brasil x haiti', data: '19/06', rodada: '2ª Rodada' },
-  { confronto: 'tunisia x japao', data: '20/06', rodada: '2ª Rodada' },
-  { confronto: 'holanda x suecia', data: '20/06', rodada: '2ª Rodada' },
-  { confronto: 'alemanha x costa do marfim', data: '20/06', rodada: '2ª Rodada' },
-  { confronto: 'equador x curacao', data: '20/06', rodada: '2ª Rodada' },
-  { confronto: 'espanha x arabia saudita', data: '21/06', rodada: '2ª Rodada' },
-  { confronto: 'belgica x ira', data: '21/06', rodada: '2ª Rodada' },
-  { confronto: 'uruguai x cabo verde', data: '21/06', rodada: '2ª Rodada' },
-  { confronto: 'nova zelandia x egito', data: '21/06', rodada: '2ª Rodada' },
-  { confronto: 'argentina x austria', data: '22/06', rodada: '2ª Rodada' },
-  { confronto: 'franca x iraque', data: '22/06', rodada: '2ª Rodada' },
-  { confronto: 'noruega x senegal', data: '22/06', rodada: '2ª Rodada' },
-  { confronto: 'jordania x argelia', data: '22/06', rodada: '2ª Rodada' },
-  { confronto: 'portugal x uzbequistao', data: '23/06', rodada: '2ª Rodada' },
-  { confronto: 'inglaterra x gana', data: '23/06', rodada: '2ª Rodada' },
-  { confronto: 'panama x croacia', data: '23/06', rodada: '2ª Rodada' },
-  { confronto: 'colombia x rd do congo', data: '23/06', rodada: '2ª Rodada' },
-  
-  // 3ª Rodada
-  { confronto: 'suica x canada', data: '24/06', rodada: '3ª Rodada' },
-  { confronto: 'bosnia x catar', data: '24/06', rodada: '3ª Rodada' },
-  { confronto: 'escocia x brasil', data: '24/06', rodada: '3ª Rodada' },
-  { confronto: 'marrocos x haiti', data: '24/06', rodada: '3ª Rodada' },
-  { confronto: 'republica tcheca x mexico', data: '24/06', rodada: '3ª Rodada' },
-  { confronto: 'africa do sul x coreia do sul', data: '24/06', rodada: '3ª Rodada' },
-  { confronto: 'equador x alemanha', data: '25/06', rodada: '3ª Rodada' },
-  { confronto: 'curacao x costa do marfim', data: '25/06', rodada: '3ª Rodada' },
-  { confronto: 'japao x suecia', data: '25/06', rodada: '3ª Rodada' },
-  { confronto: 'tunisia x holanda', data: '25/06', rodada: '3ª Rodada' },
-  { confronto: 'turquia x eua', data: '25/06', rodada: '3ª Rodada' },
-  { confronto: 'paraguai x australia', data: '25/06', rodada: '3ª Rodada' },
-  { confronto: 'noruega x franca', data: '26/06', rodada: '3ª Rodada' },
-  { confronto: 'senegal x iraque', data: '26/06', rodada: '3ª Rodada' },
-  { confronto: 'cabo verde x arabia saudita', data: '26/06', rodada: '3ª Rodada' },
-  { confronto: 'uruguai x espanha', data: '26/06', rodada: '3ª Rodada' },
-  { confronto: 'egito x ira', data: '26/06', rodada: '3ª Rodada' },
-  { confronto: 'nova zelandia x belgica', data: '26/06', rodada: '3ª Rodada' },
-  { confronto: 'panama x inglaterra', data: '27/06', rodada: '3ª Rodada' },
-  { confronto: 'croacia x gana', data: '27/06', rodada: '3ª Rodada' },
-  { confronto: 'colombia x portugal', data: '27/06', rodada: '3ª Rodada' },
-  { confronto: 'rd do congo x uzbequistao', data: '27/06', rodada: '3ª Rodada' },
-  { confronto: 'argelia x austria', data: '27/06', rodada: '3ª Rodada' },
-  { confronto: 'jordania x argentina', data: '27/06', rodada: '3ª Rodada' }
+  { confronto: 'mexico x africa do sul', data: '11/06' },
+  { confronto: 'coreia do sul x republica tcheca', data: '11/06' },
+  { confronto: 'canada x bosnia', data: '12/06' },
+  { confronto: 'eua x paraguai', data: '12/06' },
+  { confronto: 'catar x suica', data: '13/06' },
+  { confronto: 'brasil x marrocos', data: '13/06' },
+  { confronto: 'haiti x escocia', data: '13/06' },
+  { confronto: 'australia x turquia', data: '13/06' },
+  { confronto: 'alemanha x curacao', data: '14/06' },
+  { confronto: 'costa do marfim x equador', data: '14/06' },
+  { confronto: 'holanda x japao', data: '14/06' },
+  { confronto: 'suecia x tunisia', data: '14/06' },
+  { confronto: 'espanha x cabo verde', data: '15/06' },
+  { confronto: 'arabia saudita x uruguai', data: '15/06' },
+  { confronto: 'belgica x egito', data: '15/06' },
+  { confronto: 'ira x nova zelandia', data: '15/06' },
+  { confronto: 'austria x jordania', data: '16/06' },
+  { confronto: 'franca x senegal', data: '16/06' },
+  { confronto: 'iraque x noruega', data: '16/06' },
+  { confronto: 'argentina x argelia', data: '16/06' },
+  { confronto: 'portugal x rd do congo', data: '17/06' },
+  { confronto: 'inglaterra x croacia', data: '17/06' },
+  { confronto: 'gana x panama', data: '17/06' },
+  { confronto: 'uzbequistao x colombia', data: '17/06' },
+  { confronto: 'republica tcheca x africa do sul', data: '18/06' },
+  { confronto: 'suica x bosnia', data: '18/06' },
+  { confronto: 'canada x catar', data: '18/06' },
+  { confronto: 'mexico x coreia do sul', data: '18/06' },
+  { confronto: 'turquia x paraguai', data: '19/06' },
+  { confronto: 'eua x australia', data: '19/06' },
+  { confronto: 'escocia x marrocos', data: '19/06' },
+  { confronto: 'brasil x haiti', data: '19/06' },
+  { confronto: 'tunisia x japao', data: '20/06' },
+  { confronto: 'holanda x suecia', data: '20/06' },
+  { confronto: 'alemanha x costa do marfim', text: '20/06' },
+  { confronto: 'equador x curacao', data: '20/06' },
+  { confronto: 'espanha x arabia saudita', data: '21/06' },
+  { confronto: 'belgica x ira', data: '21/06' },
+  { confronto: 'uruguai x cabo verde', data: '21/06' },
+  { confronto: 'nova zelandia x egito', data: '21/06' },
+  { confronto: 'argentina x austria', data: '22/06' },
+  { confronto: 'franca x iraque', data: '22/06' },
+  { confronto: 'noruega x senegal', data: '22/06' },
+  { confronto: 'jordania x argelia', data: '22/06' },
+  { confronto: 'portugal x uzbequistao', data: '23/06' },
+  { confronto: 'inglaterra x gana', data: '23/06' },
+  { confronto: 'panama x croacia', data: '23/06' },
+  { confronto: 'colombia x rd do congo', data: '23/06' },
+  { confronto: 'suica x canada', data: '24/06' },
+  { confronto: 'bosnia x catar', data: '24/06' },
+  { confronto: 'escocia x brasil', data: '24/06' },
+  { confronto: 'marrocos x haiti', data: '24/06' },
+  { confronto: 'republica tcheca x mexico', data: '24/06' },
+  { confronto: 'africa do sul x coreia do sul', data: '24/06' },
+  { confronto: 'equador x alemanha', data: '25/06' },
+  { confronto: 'curacao x costa do marfim', data: '25/06' },
+  { confronto: 'japao x suecia', data: '25/06' },
+  { confronto: 'tunisia x holanda', data: '25/06' },
+  { confronto: 'turquia x eua', data: '25/06' },
+  { confronto: 'paraguai x australia', data: '25/06' },
+  { confronto: 'noruega x franca', data: '26/06' },
+  { confronto: 'senegal x iraque', data: '26/06' },
+  { confronto: 'cabo verde x arabia saudita', data: '26/06' },
+  { confronto: 'uruguai x espanha', data: '26/06' },
+  { confronto: 'egito x ira', data: '26/06' },
+  { confronto: 'nova zelandia x belgica', data: '26/06' },
+  { confronto: 'panama x inglaterra', data: '27/06' },
+  { confronto: 'croacia x gana', data: '27/06' },
+  { confronto: 'colombia x portugal', data: '27/06' },
+  { confronto: 'rd do congo x uzbequistao', data: '27/06' },
+  { confronto: 'argelia x austria', data: '27/06' },
+  { confronto: 'jordania x argentina', data: '27/06' }
 ];
 
 const ORDEM_CATEGORIAS_ESPECIAIS = [
@@ -139,15 +122,33 @@ const ORDEM_CATEGORIAS_ESPECIAIS = [
 
 const LISTA_GRUPOS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
-function traduzirFaseVaga(faseVaga: string) {
-  const numeroJogo = parseInt(faseVaga.replace(/\D/g, ''), 10);
-  if (numeroJogo >= 73 && numeroJogo <= 88) return { fase: "Fase de 32", detalhe: `Jogo ${numeroJogo}` };
-  if (numeroJogo >= 89 && numeroJogo <= 96) return { fase: "Oitavas de Final", detalhe: `Jogo ${numeroJogo}` };
-  if (numeroJogo >= 97 && numeroJogo <= 100) return { fase: "Quartas de Final", detalhe: `Jogo ${numeroJogo}` };
-  if (numeroJogo === 101 || numeroJogo === 102) return { fase: "Semifinal", detalhe: `Jogo ${numeroJogo}` };
-  if (numeroJogo === 103) return { fase: "Disputa do 3º Lugar", detalhe: "3º Lugar" };
-  if (numeroJogo === 104) return { fase: "Grande Final", detalhe: "Final 🏆" };
-  return { fase: "Mata-Mata", detalhe: faseVaga };
+const MAPA_DEPENDENCIAS: Record<string, { casa: string; fora: string }> = {
+  'J89': { casa: 'J73', fora: 'J74' },
+  'J90': { casa: 'J75', fora: 'J76' },
+  'J91': { casa: 'J77', fora: 'J78' },
+  'J92': { casa: 'J79', fora: 'J80' },
+  'J93': { casa: 'J81', fora: 'J82' },
+  'J94': { casa: 'J83', fora: 'J84' },
+  'J95': { casa: 'J85', fora: 'J86' },
+  'J96': { casa: 'J87', fora: 'J88' },
+  'J97': { casa: 'J89', fora: 'J90' },
+  'J98': { casa: 'J91', fora: 'J92' },
+  'J99': { casa: 'J93', fora: 'J94' },
+  'J100': { casa: 'J95', fora: 'J96' },
+  'J101': { casa: 'J97', fora: 'J98' },
+  'J102': { casa: 'J99', fora: 'J100' },
+  'J104': { casa: 'J101', fora: 'J102' }
+};
+
+function obterDetalheFase(faseVaga: string) {
+  const num = parseInt(faseVaga.replace(/\D/g, ''), 10);
+  if (num >= 73 && num <= 88) return { label: "16 Avos", cor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+  if (num >= 89 && num <= 96) return { label: "Oitavas", cor: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
+  if (num >= 97 && num <= 100) return { label: "Quartas", cor: "bg-purple-500/10 text-purple-400 border-purple-500/20" };
+  if (num === 101 || num === 102) return { label: "Semifinal", cor: "bg-pink-500/10 text-pink-400 border-pink-500/20" };
+  if (num === 103) return { label: "3º Lugar", cor: "bg-slate-500/10 text-slate-400 border-slate-500/20" };
+  if (num === 104) return { label: "Final 🏆", cor: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+  return { label: "Mata-Mata", cor: "bg-white/5 text-white border-white/10" };
 }
 
 export default function VisualizarPalpites() {
@@ -168,10 +169,9 @@ export default function VisualizarPalpites() {
 
     async function carregarDadosDoParticipante() {
       try {
-        // 🎯 CORREÇÃO CRÍTICA: Puxando o campo "pontos" legítimo direto da tabela 'perfis'
         const { data: dadosPerfil, error: erroPerfil } = await supabase
           .from('perfis')
-          .select('nome, pontos') 
+          .select('nome, pontos')
           .eq('id', id)
           .maybeSingle();
 
@@ -187,21 +187,20 @@ export default function VisualizarPalpites() {
 
         if (erroGrupos) throw erroGrupos;
         const grupos = (dadosGrupos as any) || [];
-        
-        // 🛠️ Ordenação Cronológica
+
         const gruposOrdenados = grupos.sort((a: any, b: any) => {
           const casaA = removerAcentos(a.jogos?.time_casa || '');
           const foraA = removerAcentos(a.jogos?.time_fora || '');
           const casaB = removerAcentos(b.jogos?.time_casa || '');
           const foraB = removerAcentos(b.jogos?.time_fora || '');
-          
-          const indexA = CALENDARIO_OFICIAL_COMPLETO.findIndex(x => 
+
+          const indexA = CALENDARIO_OFICIAL_COMPLETO.findIndex(x =>
             x.confronto === `${casaA} x ${foraA}` || x.confronto === `${foraA} x ${casaA}`
           );
-          const indexB = CALENDARIO_OFICIAL_COMPLETO.findIndex(x => 
+          const indexB = CALENDARIO_OFICIAL_COMPLETO.findIndex(x =>
             x.confronto === `${casaB} x ${foraB}` || x.confronto === `${foraB} x ${casaB}`
           );
-          
+
           return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
         });
         setPalpitesGrupos(gruposOrdenados);
@@ -219,10 +218,9 @@ export default function VisualizarPalpites() {
         });
         setPalpitesEsp(espOrdenados);
 
-        // 🎯 DEFINIÇÃO FIEL: Usa o valor oficial que está gravado na tabela do banco de dados
         setPerfil({
           nome: dadosPerfil?.nome || 'Usuário Sem Nome',
-          pontos: dadosPerfil?.pontos ?? 0 
+          pontos: dadosPerfil?.pontos ?? 0
         });
 
       } catch (err) {
@@ -235,22 +233,90 @@ export default function VisualizarPalpites() {
     carregarDadosDoParticipante();
   }, [id]);
 
-  if (carregando) {
-    return (
-      <div className="min-h-screen w-full bg-slate-900 flex items-center justify-center">
-        <div className="text-gray-400 font-mono animate-pulse">Carregando auditoria de palpites...</div>
-      </div>
-    );
-  }
+  const confrontosProcessadosMM = useMemo(() => {
+    const dadosMapeados: Record<string, {
+      codigo: string;
+      time_casa: string;
+      time_fora: string;
+      vencedor_escolhido: string;
+      pontos_vencedor: number;
+    }> = {};
 
-  if (!perfil) {
-    return (
-      <div className="min-h-screen w-full bg-slate-900 flex flex-col items-center justify-center text-white gap-4">
-        <p className="text-red-400 font-mono">Participante não encontrado.</p>
-        <button onClick={() => router.back()} className="text-sm text-blue-400 underline">Voltar para o Ranking</button>
-      </div>
-    );
-  }
+    palpitesMM.forEach(p => {
+      const faseVaga = p.fase_vaga ? p.fase_vaga.trim().toUpperCase() : '';
+      const baseJogo = faseVaga.split('_')[0];
+
+      if (!dadosMapeados[baseJogo]) {
+        dadosMapeados[baseJogo] = {
+          codigo: baseJogo,
+          time_casa: '',
+          time_fora: '',
+          vencedor_escolhido: '',
+          pontos_vencedor: 0
+        };
+      }
+
+      if (faseVaga.endsWith('_1')) {
+        dadosMapeados[baseJogo].time_casa = p.selecao_escolhida || '';
+      } else if (faseVaga.endsWith('_2')) {
+        dadosMapeados[baseJogo].time_fora = p.selecao_escolhida || '';
+      } else {
+        dadosMapeados[baseJogo].vencedor_escolhido = p.selecao_escolhida || '';
+        dadosMapeados[baseJogo].pontos_vencedor = p.pontos_ganhos || 0;
+      }
+    });
+
+    const chavesOrdenadas = Object.keys(MAPA_DEPENDENCIAS).sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
+      return numA - numB;
+    });
+
+    chavesOrdenadas.forEach(jogoId => {
+      const dependencias = MAPA_DEPENDENCIAS[jogoId];
+      if (!dadosMapeados[jogoId]) {
+        dadosMapeados[jogoId] = { codigo: jogoId, time_casa: '', time_fora: '', vencedor_escolhido: '', pontos_vencedor: 0 };
+      }
+
+      if (!dadosMapeados[jogoId].time_casa) {
+        const jogoAnterior = dadosMapeados[dependencias.casa];
+        dadosMapeados[jogoId].time_casa = jogoAnterior && jogoAnterior.vencedor_escolhido ? jogoAnterior.vencedor_escolhido : 'A definir';
+      }
+
+      if (!dadosMapeados[jogoId].time_fora) {
+        const jogoAnterior = dadosMapeados[dependencias.fora];
+        dadosMapeados[jogoId].time_fora = jogoAnterior && jogoAnterior.vencedor_escolhido ? jogoAnterior.vencedor_escolhido : 'A definir';
+      }
+    });
+
+    if (!dadosMapeados['J103']) {
+      dadosMapeados['J103'] = { codigo: 'J103', time_casa: '', time_fora: '', vencedor_escolhido: '', pontos_vencedor: 0 };
+    }
+
+    if (!dadosMapeados['J103'].time_casa) {
+      const j101 = dadosMapeados['J101'];
+      if (j101 && j101.vencedor_escolhido && j101.time_casa && j101.time_fora) {
+        dadosMapeados['J103'].time_casa = j101.vencedor_escolhido === j101.time_casa ? j101.time_fora : j101.time_casa;
+      } else {
+        dadosMapeados['J103'].time_casa = 'A definir';
+      }
+    }
+
+    if (!dadosMapeados['J103'].time_fora) {
+      const j102 = dadosMapeados['J102'];
+      if (j102 && j102.vencedor_escolhido && j102.time_casa && j102.time_fora) {
+        dadosMapeados['J103'].time_fora = j102.vencedor_escolhido === j102.time_casa ? j102.time_fora : j102.time_casa;
+      } else {
+        dadosMapeados['J103'].time_fora = 'A definir';
+      }
+    }
+
+    return Object.values(dadosMapeados).sort((a, b) => {
+      const numA = parseInt(a.codigo.replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(b.codigo.replace(/\D/g, ''), 10) || 0;
+      return numA - numB;
+    });
+  }, [palpitesMM]);
 
   const palpitesGruposFiltrados = palpitesGrupos.filter((item) => {
     if (grupoSelecionado === 'TODOS') return true;
@@ -258,42 +324,50 @@ export default function VisualizarPalpites() {
   });
 
   return (
-    <div className="min-h-screen w-full bg-slate-900 p-4 md:p-12 text-white">
+    <div className="min-h-screen w-full bg-slate-900 p-3 md:p-12 text-white overflow-x-hidden">
       <div className="max-w-4xl mx-auto space-y-6">
 
-        {/* Voltar e Cabeçalho */}
-        <div className="space-y-4">
+        {/* Botão de Voltar */}
+        <div className="flex justify-start">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-black text-gray-200 hover:text-white rounded-xl border border-white/10 shadow-md transition group focus:outline-none focus:ring-2 focus:ring-amber-400"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs md:text-sm font-black text-gray-200 hover:text-white rounded-xl border border-white/10 shadow-md transition group focus:outline-none"
           >
             <span className="text-base transition-transform group-hover:-translate-x-1">⬅️</span>
-            <span>Voltar para o Ranking Geral</span>
+            <span>Voltar ao Ranking</span>
           </button>
+        </div>
 
-          <div className="border-b border-white/10 pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <span className="text-xs font-bold text-blue-400 uppercase tracking-widest block mb-1">Modo Leitura Auditado 👁️</span>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-                Palpites de <span className="text-amber-400">{perfil.nome}</span>
-              </h1>
-            </div>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 px-5 py-2 rounded-xl text-right shrink-0">
-              <p className="text-[10px] text-emerald-500 uppercase tracking-widest font-bold">Pontuação Total</p>
-              <p className="text-2xl font-black text-emerald-400 font-mono">{perfil.pontos} pts</p>
-            </div>
+        {/* 🎯 CABEÇALHO COM PROTEÇÃO CONTRA NOMES GRANDES */}
+        <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-4 w-full">
+          <div className="flex flex-col items-center md:items-start min-w-0 w-full md:flex-1">
+            <span className="text-[10px] md:text-xs font-bold text-blue-400 uppercase tracking-widest block mb-1">
+              Modo Leitura Auditado 👁️
+            </span>
+            <h1 className="text-lg md:text-2xl font-black tracking-tight text-white w-full break-words">
+              Palpites de <span className="text-amber-400">{perfil?.nome}</span>
+            </h1>
+          </div>
+
+          <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-xl text-center md:text-right shrink-0 w-full sm:w-auto">
+            <p className="text-[9px] md:text-[10px] text-emerald-500 uppercase tracking-widest font-bold">
+              Pontuação Total
+            </p>
+            <p className="text-xl md:text-2xl font-black text-emerald-400 font-mono">
+              {perfil?.pontos} pts
+            </p>
           </div>
         </div>
 
         {/* NAVEGAÇÃO ENTRE ABAS */}
         <div className="flex bg-slate-950 p-1 rounded-xl border border-white/5 gap-1">
-          <button onClick={() => setAbaAtiva('grupos')} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${abaAtiva === 'grupos' ? 'bg-white/10 text-amber-400' : 'text-gray-400 hover:text-white'}`}>
-            ⚽ Fase de Grupos
+          <button onClick={() => setAbaAtiva('grupos')} className={`flex-1 py-2.5 rounded-lg text-[11px] md:text-xs font-bold transition ${abaAtiva === 'grupos' ? 'bg-white/10 text-amber-400' : 'text-gray-400 hover:text-white'}`}>
+            ⚽ Grupos
           </button>
-          <button onClick={() => setAbaAtiva('matamata')} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${abaAtiva === 'matamata' ? 'bg-white/10 text-blue-400' : 'text-gray-400 hover:text-white'}`}>
+          <button onClick={() => setAbaAtiva('matamata')} className={`flex-1 py-2.5 rounded-lg text-[11px] md:text-xs font-bold transition ${abaAtiva === 'matamata' ? 'bg-white/10 text-blue-400' : 'text-gray-400 hover:text-white'}`}>
             ⚡ Mata-Mata
           </button>
-          <button onClick={() => setAbaAtiva('especiais')} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${abaAtiva === 'especiais' ? 'bg-white/10 text-purple-400' : 'text-gray-400 hover:text-white'}`}>
+          <button onClick={() => setAbaAtiva('especiais')} className={`flex-1 py-2.5 rounded-lg text-[11px] md:text-xs font-bold transition ${abaAtiva === 'especiais' ? 'bg-white/10 text-purple-400' : 'text-gray-400 hover:text-white'}`}>
             🔥 Especiais
           </button>
         </div>
@@ -303,16 +377,15 @@ export default function VisualizarPalpites() {
           <div className="bg-slate-950 p-2 rounded-xl border border-white/5 flex flex-wrap gap-1 items-center justify-center">
             <button
               onClick={() => setGrupoSelecionado('TODOS')}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-black tracking-wider transition ${grupoSelecionado === 'TODOS' ? 'bg-amber-500 text-slate-950' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black tracking-wider transition ${grupoSelecionado === 'TODOS' ? 'bg-amber-500 text-slate-950' : 'bg-white/5 text-gray-400 hover:text-white'}`}
             >
               TODOS
             </button>
-            <div className="h-4 w-[1px] bg-white/10 mx-1 hidden sm:block" />
             {LISTA_GRUPOS.map((letra) => (
               <button
                 key={letra}
                 onClick={() => setGrupoSelecionado(letra)}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-black transition ${grupoSelecionado === letra ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg text-[11px] font-black transition ${grupoSelecionado === letra ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 text-gray-400 hover:text-white'}`}
               >
                 {letra}
               </button>
@@ -336,19 +409,17 @@ export default function VisualizarPalpites() {
                 const casaLimpa = removerAcentos(jogo.time_casa || '');
                 const foraLimpa = removerAcentos(jogo.time_fora || '');
 
-                const infoCronograma = CALENDARIO_OFICIAL_COMPLETO.find(x => 
-                  x.confronto === `${casaLimpa} x ${foraLimpa}` || 
+                const infoCronograma = CALENDARIO_OFICIAL_COMPLETO.find(x =>
+                  x.confronto === `${casaLimpa} x ${foraLimpa}` ||
                   x.confronto === `${foraLimpa} x ${casaLimpa}`
                 );
 
                 return (
-                  <div key={item.id} className="bg-slate-950 p-4 rounded-xl border border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 hover:border-white/10 transition">
-                    <div className="flex items-center gap-2.5 w-full md:w-5/12 justify-between md:justify-start">
-                      
-                      {/* Metadados (Grupo + Data) */}
-                      <div className="flex items-center gap-1.5 shrink-0 font-mono text-[10px]">
-                        <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded font-black uppercase tracking-wider">
-                          {jogo.grupo || ''}
+                  <div key={item.id} className="bg-slate-950 p-3.5 rounded-xl border border-white/5 flex flex-col md:flex-row justify-between items-center gap-3.5 hover:border-white/10 transition">
+                    <div className="flex flex-col md:flex-row items-center gap-2.5 w-full md:w-7/12 min-w-0">
+                      <div className="flex items-center justify-center gap-1.5 font-mono text-[9px] md:text-[10px] w-full md:w-auto md:justify-start shrink-0">
+                        <span className="px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded font-black uppercase tracking-wider">
+                          G {jogo.grupo || ''}
                         </span>
                         {infoCronograma && (
                           <span className="px-1.5 py-0.5 bg-white/5 text-gray-400 rounded border border-white/5 font-medium">
@@ -357,84 +428,79 @@ export default function VisualizarPalpites() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 truncate justify-end md:justify-start w-full">
-                        <span className="text-sm font-bold text-gray-200 truncate">{jogo.time_casa}</span>
-                        <span className="text-[10px] text-gray-500 font-black px-1.5 py-0.5 bg-white/5 rounded shrink-0">VS</span>
-                        <span className="text-sm font-bold text-gray-200 truncate">{jogo.time_fora}</span>
+                      {/* CONFRONTOS DA FASE DE GRUPOS */}
+                      <div className="flex items-center justify-center gap-2 w-full text-center min-w-0">
+                        <span className="text-xs md:text-sm font-bold text-gray-200 truncate flex-1 text-right min-w-0">{jogo.time_casa}</span>
+                        <span className="text-[9px] text-gray-500 font-black px-1 py-0.5 bg-white/5 rounded shrink-0">VS</span>
+                        <span className="text-xs md:text-sm font-bold text-gray-200 truncate flex-1 text-left min-w-0">{jogo.time_fora}</span>
                       </div>
                     </div>
 
-                    <div className="flex gap-4 shrink-0">
-                      <div className="flex flex-col items-center bg-amber-500/5 border border-amber-500/10 px-4 py-2 rounded-lg min-w-[120px]">
-                        <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider mb-1">Palpite</span>
-                        <div className="text-lg font-black font-mono text-amber-200">{item.palpite_casa} x {item.palpite_fora}</div>
+                    <div className="flex gap-3 shrink-0 w-full md:w-auto justify-center">
+                      <div className="flex flex-col items-center justify-center bg-amber-500/5 border border-amber-500/10 px-3 py-1.5 rounded-lg min-w-[100px]">
+                        <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider mb-0.5 text-center">Palpite</span>
+                        <div className="text-base font-black font-mono text-amber-200 text-center">{item.palpite_casa} x {item.palpite_fora}</div>
                       </div>
-                      <div className="flex flex-col items-center bg-slate-900 border border-white/5 px-4 py-2 rounded-lg min-w-[120px]">
-                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Oficial</span>
-                        <div className="text-sm font-bold font-mono text-gray-400 mt-0.5">{jogoTevePlacarReal ? `${jogo.gols_casa} x ${jogo.gols_fora}` : '— x —'}</div>
+                      <div className="flex flex-col items-center justify-center bg-slate-900 border border-white/5 px-3 py-1.5 rounded-lg min-w-[100px]">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 text-center">Oficial</span>
+                        <div className="text-xs font-bold font-mono text-gray-400 mt-0.5 text-center">{jogoTevePlacarReal ? `${jogo.gols_casa} x ${jogo.gols_fora}` : '— x —'}</div>
                       </div>
                     </div>
-                    <div className="text-right font-mono font-black text-emerald-400 min-w-[60px]">+{item.pontos_ganhos || 0} pts</div>
+                    <div className="text-center md:text-right font-mono font-black text-emerald-400 text-xs md:text-sm min-w-[50px] w-full md:w-auto">+{item.pontos_ganhos || 0} pts</div>
                   </div>
                 );
               })
             )
           )}
 
-          {/* ABA 2: MATA MATA */}
+          {/* ⚡ ABA 2: MATA-MATA */}
           {abaAtiva === 'matamata' && (
-            palpitesMM.length === 0 ? (
+            confrontosProcessadosMM.length === 0 ? (
               <div className="p-8 text-center bg-slate-950 rounded-xl text-gray-500 text-sm border border-white/5">Nenhum palpite de mata-mata enviado.</div>
             ) : (
               <div className="space-y-3">
-                {(() => {
-                  const confrontosAgrupados: Record<string, { componentes: string[]; vencedor?: string; pontos?: number }> = {};
-                  palpitesMM.forEach((item) => {
-                    const idVaga = item.fase_vaga;
-                    const baseVaga = idVaga.split('_')[0];
-                    if (!confrontosAgrupados[baseVaga]) confrontosAgrupados[baseVaga] = { componentes: [] };
+                {confrontosProcessadosMM.map((jogo) => {
+                  const faseInfo = obterDetalheFase(jogo.codigo);
 
-                    if (idVaga.endsWith('_1') || idVaga.endsWith('_2')) {
-                      if (item.selecao_escolhida) confrontosAgrupados[baseVaga].componentes.push(item.selecao_escolhida);
-                    } else {
-                      confrontosAgrupados[baseVaga].vencedor = item.selecao_escolhida;
-                      confrontosAgrupados[baseVaga].pontos = item.pontos_ganhos;
-                    }
-                  });
+                  return (
+                    <div key={jogo.codigo} className="bg-slate-950 p-4 rounded-xl border border-white/5 flex flex-col md:flex-row justify-between items-center gap-3.5 hover:border-white/10 transition text-center">
 
-                  return Object.entries(confrontosAgrupados)
-                    .sort((a, b) => parseInt(a[0].replace(/\D/g, ''), 10) - parseInt(b[0].replace(/\D/g, ''), 10))
-                    .map(([codigoJogo, dados]) => {
-                      const info = traduzirFaseVaga(codigoJogo);
-                      const vencedor = dados.vencedor;
-                      const timesNoConfronto = Array.from(new Set(dados.componentes));
+                      {/* Identificação da Fase */}
+                      <div className="flex items-center justify-center gap-2 shrink-0 w-full md:w-auto">
+                        <span className={`text-[9px] font-mono px-1.5 py-0.5 border rounded font-black uppercase tracking-wider ${faseInfo.cor}`}>
+                          {faseInfo.label}
+                        </span>
+                        <span className="text-[11px] text-gray-500 font-mono font-bold">[{jogo.codigo}]</span>
+                      </div>
 
-                      return (
-                        <div key={codigoJogo} className="bg-slate-950 p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-white/10 transition">
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded font-bold uppercase tracking-wider">{info.fase}</span>
-                            <span className="text-xs text-gray-500 font-mono">[{info.detalhe}]</span>
-                          </div>
-                          
-                          <div className="text-xs text-gray-400 sm:text-center flex-1">
-                            {timesNoConfronto.length > 0 ? (
-                              <p>Confronto simulado: <span className="text-gray-200 font-bold">{timesNoConfronto.join(' x ')}</span></p>
-                            ) : (
-                              <p className="text-gray-500">Disputa pela vaga das <span className="text-blue-400 font-medium">{info.fase}</span></p>
-                            )}
-                          </div>
+                      {/* CONFRONTOS DO MATA-MATA */}
+                      <div className="flex-1 text-xs md:text-sm font-bold text-gray-200 flex items-center justify-center gap-2 w-full text-center min-w-0">
+                        <span className={`px-1.5 py-0.5 rounded-lg flex-1 text-right truncate min-w-0 ${jogo.time_casa === jogo.vencedor_escolhido ? 'text-amber-400 bg-amber-400/5 border border-amber-500/20' : 'text-gray-400 bg-white/5'}`}>
+                          {jogo.time_casa || 'A definir'}
+                        </span>
+                        <span className="text-[9px] text-gray-600 font-black shrink-0">X</span>
+                        <span className={`px-1.5 py-0.5 rounded-lg flex-1 text-left truncate min-w-0 ${jogo.time_fora === jogo.vencedor_escolhido ? 'text-amber-400 bg-amber-400/5 border border-amber-500/20' : 'text-gray-400 bg-white/5'}`}>
+                          {jogo.time_fora || 'A definir'}
+                        </span>
+                      </div>
 
-                          <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto border-t border-white/5 sm:border-0 pt-2 sm:pt-0">
-                            <div className="text-sm">
-                              <span className="text-gray-400 text-xs mr-1">Apostou em:</span>
-                              <span className="text-amber-400 font-black tracking-wide bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/15">{vencedor || 'Ninguém'}</span>
-                            </div>
-                            <div className="font-mono font-black text-emerald-400 shrink-0">+{dados.pontos || 0} pts</div>
-                          </div>
+                      {/* Vencedor Escolhido */}
+                      <div className="w-full md:w-auto border-t md:border-t-0 border-white/5 pt-2.5 md:pt-0 flex flex-row items-center justify-between md:justify-end gap-3 shrink-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-[10px] text-gray-400 font-medium">Avança:</span>
+                          <span className="text-[11px] md:text-xs font-black tracking-wide text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20 font-mono truncate max-w-[130px]">
+                            👑 {jogo.vencedor_escolhido || 'Ninguém'}
+                          </span>
                         </div>
-                      );
-                    });
-                })()}
+
+                        <div className={`font-mono font-black text-xs px-2 py-0.5 rounded-md shrink-0 ${jogo.pontos_vencedor > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 text-gray-600'}`}>
+                          +{jogo.pontos_vencedor} pts
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
               </div>
             )
           )}
@@ -445,12 +511,12 @@ export default function VisualizarPalpites() {
               <div className="p-8 text-center bg-slate-950 rounded-xl text-gray-500 text-sm border border-white/5">Nenhum palpite especial enviado.</div>
             ) : (
               palpitesEsp.map((item) => (
-                <div key={item.id} className="bg-slate-950 p-4 rounded-xl border border-white/5 flex justify-between items-center gap-4 hover:border-white/10 transition">
-                  <div className="truncate pr-4">
-                    <p className="text-xs text-purple-400 font-bold uppercase tracking-wider mb-1">{item.pergunta_id.replace(/_/g, ' ')}</p>
-                    <p className="text-sm font-black text-gray-200 truncate">{item.resposta_palpite || 'Em branco'}</p>
+                <div key={item.id} className="bg-slate-950 p-4 rounded-xl border border-white/5 flex justify-between items-center gap-4 hover:border-white/10 transition text-left">
+                  <div className="truncate pr-4 min-w-0 flex-1">
+                    <p className="text-[10px] text-purple-400 font-bold uppercase tracking-wider mb-0.5 truncate">{item.pergunta_id.replace(/_/g, ' ')}</p>
+                    <p className="text-xs md:text-sm font-black text-gray-200 truncate">{item.resposta_palpite || 'Em branco'}</p>
                   </div>
-                  <div className="text-right font-mono font-black text-emerald-400 shrink-0">+{item.pontos_ganhos || 0} pts</div>
+                  <div className="text-right font-mono font-black text-emerald-400 shrink-0 text-xs md:text-sm">+{item.pontos_ganhos || 0} pts</div>
                 </div>
               ))
             )
