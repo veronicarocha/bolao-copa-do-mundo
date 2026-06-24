@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 interface Jogo {
@@ -9,7 +9,8 @@ interface Jogo {
   gols_casa: number | null;
   gols_fora: number | null;
   grupo: string;
-  data_formatada?: string; // Injetado dinamicamente
+  data_formatada?: string;
+  posicao_cronologica?: number;
 }
 
 interface PalpiteParticipante {
@@ -20,7 +21,6 @@ interface PalpiteParticipante {
   pontos_ganhos: number | null;
 }
 
-// 🗓️ Calendário Oficial Normalizado da sua Aplicação
 const CALENDARIO_OFICIAL_COMPLETO = [
   { confronto: 'mexico x africa do sul', data: '11/06', rodada: '1ª Rodada' },
   { confronto: 'coreia do sul x republica tcheca', data: '11/06', rodada: '1ª Rodada' },
@@ -57,7 +57,7 @@ const CALENDARIO_OFICIAL_COMPLETO = [
   { confronto: 'tunisia x japao', data: '20/06', rodada: '2ª Rodada' },
   { confronto: 'holanda x suecia', data: '20/06', rodada: '2ª Rodada' },
   { confronto: 'alemanha x costa do marfim', data: '20/06', rodada: '2ª Rodada' },
-  { confronto: 'equador x curacao', data: '20/06', rounded: '2ª Rodada' },
+  { confronto: 'equador x curacao', data: '20/06', rodada: '2ª Rodada' },
   { confronto: 'espanha x arabia saudita', data: '21/06', rodada: '2ª Rodada' },
   { confronto: 'belgica x ira', data: '21/06', rodada: '2ª Rodada' },
   { confronto: 'uruguai x cabo verde', data: '21/06', rodada: '2ª Rodada' },
@@ -69,7 +69,7 @@ const CALENDARIO_OFICIAL_COMPLETO = [
   { confronto: 'portugal x uzbequistao', data: '23/06', rodada: '2ª Rodada' },
   { confronto: 'inglaterra x gana', data: '23/06', rodada: '2ª Rodada' },
   { confronto: 'panama x croacia', data: '23/06', rodada: '2ª Rodada' },
-  { antiquado: 'colombia x rd do congo', confronto: 'colombia x rd do congo', data: '23/06', rodada: '2ª Rodada' },
+  { confronto: 'colombia x rd do congo', data: '23/06', rodada: '2ª Rodada' },
   { confronto: 'suica x canada', data: '24/06', rodada: '3ª Rodada' },
   { confronto: 'bosnia x catar', data: '24/06', rodada: '3ª Rodada' },
   { confronto: 'escocia x brasil', data: '24/06', rodada: '3ª Rodada' },
@@ -127,13 +127,12 @@ export default function TelaEspiarPalpites() {
 
         const listaBase = data || [];
 
-        // Injeta a data mapeada do calendário e indexa para ordenação cronológica estruturada
         const listaMapeada = listaBase.map((jogo: any) => {
           const casaLimpa = removerAcentos(jogo.time_casa || '');
           const foraLimpa = removerAcentos(jogo.time_fora || '');
 
-          const infoCronograma = CALENDARIO_OFICIAL_COMPLETO.find(x => 
-            x.confronto === `${casaLimpa} x ${foraLimpa}` || 
+          const infoCronograma = CALENDARIO_OFICIAL_COMPLETO.find(x =>
+            x.confronto === `${casaLimpa} x ${foraLimpa}` ||
             x.confronto === `${foraLimpa} x ${casaLimpa}`
           );
 
@@ -144,24 +143,20 @@ export default function TelaEspiarPalpites() {
           };
         });
 
-        // Ordenação fiel ao andamento do campeonato mundial
         listaMapeada.sort((a, b) => a.posicao_cronologica - b.posicao_cronologica);
         setJogos(listaMapeada);
 
         if (listaMapeada.length > 0) {
-          // 🧠 CAPTURA INTELIGENTE DO DIA ATUAL
           const hoje = new Date();
           const dia = String(hoje.getDate()).padStart(2, '0');
           const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-          const dataHojeFormatada = `${dia}/${mes}`; // Ex: "13/06"
+          const dataHojeFormatada = `${dia}/${mes}`;
 
-          // Procura o primeiro confronto da lista ordenada que aconteça na data de hoje
           const jogoDeHoje = listaMapeada.find(j => j.data_formatada === dataHojeFormatada);
 
           if (jogoDeHoje) {
             setJogoSelecionadoId(jogoDeHoje.id);
           } else {
-            // Fallback padrão se não houver jogos hoje
             setJogoSelecionadoId(listaMapeada[0].id);
           }
         }
@@ -197,8 +192,8 @@ export default function TelaEspiarPalpites() {
           return {
             id_perfil: perfil.id,
             nome_participante: perfil.nome || 'Sem Nome',
-            palpite_casa: palpiteUsuario ? palpiteUsuario.palpite_casa : '-',
-            palpite_fora: palpiteUsuario ? palpiteUsuario.palpite_fora : '-',
+            palpite_casa: palpiteUsuario && palpiteUsuario.palpite_casa !== null ? palpiteUsuario.palpite_casa : '-',
+            palpite_fora: palpiteUsuario && palpiteUsuario.palpite_fora !== null ? palpiteUsuario.palpite_fora : '-',
             pontos_ganhos: palpiteUsuario ? palpiteUsuario.pontos_ganhos : null
           };
         });
@@ -214,6 +209,35 @@ export default function TelaEspiarPalpites() {
     buscarPalpitesDoJogo();
   }, [jogoSelecionadoId]);
 
+  const estatisticasPlacares = useMemo(() => {
+    const palpitesValidos = palpitesExibidos.filter(p => p.palpite_casa !== '-' && p.palpite_fora !== '-');
+    const totalApostadores = palpitesValidos.length;
+
+    const agrupamento: Record<string, string[]> = {};
+
+    palpitesValidos.forEach(p => {
+      const chavePlacar = `${p.palpite_casa} x ${p.palpite_fora}`;
+      if (!agrupamento[chavePlacar]) {
+        agrupamento[chavePlacar] = [];
+      }
+      agrupamento[chavePlacar].push(p.nome_participante);
+    });
+
+    const listaOrdenada = Object.entries(agrupamento)
+      .map(([placar, nomes]) => ({
+        placar,
+        nomes,
+        quantidade: nomes.length,
+        percentual: totalApostadores > 0 ? Math.round((nomes.length / totalApostadores) * 100) : 0
+      }))
+      .sort((a, b) => b.quantidade - a.quantidade);
+
+    return {
+      totalApostadores,
+      listaOrdenada
+    };
+  }, [palpitesExibidos]);
+
   if (carregandoJogos) {
     return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-gray-400 font-mono">Carregando calendário unificado...</div>;
   }
@@ -223,7 +247,8 @@ export default function TelaEspiarPalpites() {
   return (
     <div className="min-h-screen w-full bg-slate-900 p-4 md:p-12 text-white">
       <div className="max-w-4xl mx-auto space-y-6">
-        
+
+        {/* Header */}
         <div className="border-b border-white/10 pb-6 space-y-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-amber-400">🕵️‍♂️ Mural de Palpites por Jogo</h1>
@@ -235,7 +260,7 @@ export default function TelaEspiarPalpites() {
             <select
               value={jogoSelecionadoId}
               onChange={(e) => setJogoSelecionadoId(e.target.value)}
-              className="w-full bg-slate-950 border border-white/20 py-2 px-3 rounded-xl text-white font-bold outline-none focus:border-amber-500 shadow-xl font-mono text-xs"
+              className="w-full bg-slate-950 border border-white/20 py-2 px-3 rounded-xl text-white font-bold outline-none focus:border-amber-500 shadow-xl font-mono text-xs cursor-pointer"
             >
               {jogos.map((j) => (
                 <option key={j.id} value={j.id}>
@@ -246,14 +271,15 @@ export default function TelaEspiarPalpites() {
           </div>
         </div>
 
+        {/* Placar Oficial - Reduzido text-xl para text-base e o bloco de gols para text-xl */}
         {jogoAtual && (
-          <div className="bg-gradient-to-r from-slate-950 to-slate-900 p-6 rounded-2xl border border-white/5 flex flex-col items-center justify-center text-center shadow-lg gap-2">
+          <div className="bg-gradient-to-r from-slate-950 to-slate-900 p-5 rounded-2xl border border-white/5 flex flex-col items-center justify-center text-center shadow-lg gap-2">
             <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">
               📅 {jogoAtual.data_formatada} — Placar Oficial Grupo {jogoAtual.grupo}
             </span>
-            <div className="flex items-center gap-6 text-xl font-black mt-1">
+            <div className="flex items-center gap-5 text-base font-black mt-1">
               <span>{jogoAtual.time_casa}</span>
-              <span className="text-2xl text-amber-400 bg-black/40 px-3 py-1 rounded-lg border border-white/5">
+              <span className="text-xl text-amber-400 bg-black/40 px-3 py-1 rounded-lg border border-white/5 font-mono">
                 {jogoAtual.gols_casa ?? '-'} x {jogoAtual.gols_fora ?? '-'}
               </span>
               <span>{jogoAtual.time_fora}</span>
@@ -261,8 +287,52 @@ export default function TelaEspiarPalpites() {
           </div>
         )}
 
+        {/* 📊 Painel de Estatísticas e Tendências */}
+        <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4 shadow-xl text-left">
+          <div className="flex justify-between items-center border-b border-white/5 pb-3">
+            <div>
+              <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider">📊 Distribuição de Placares</h3>
+              <p className="text-[11px] text-gray-400 mt-0.5"></p>
+            </div>
+            <div className="bg-slate-900 border border-white/10 px-3 py-1.5 rounded-xl font-mono text-xs font-bold text-gray-300">
+              {/*Apostadores ativos: <span className="text-emerald-400 font-black">{estatisticasPlacares.totalApostadores}</span>*/}
+            </div>
+          </div>
+
+          {carregandoPalpites ? (
+            <div className="text-center font-mono text-xs text-gray-500 py-2 animate-pulse">Calculando tendências...</div>
+          ) : estatisticasPlacares.listaOrdenada.length === 0 ? (
+            <div className="text-center text-xs text-gray-500 italic py-2">Nenhum palpite inserido para este confronto até o momento.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+              {estatisticasPlacares.listaOrdenada.map(({ placar, nomes, quantidade, percentual }) => (
+                <div key={placar} className="bg-slate-900/60 border border-white/5 p-3 rounded-xl flex flex-col gap-1.5 transition hover:border-white/10">
+                  <div className="flex justify-between items-center">
+                    {/* Reduzido de text-sm para text-xs */}
+                    <span className="text-xs font-mono font-black text-amber-400 bg-black/40 px-2 py-0.5 rounded border border-white/5">
+                      {placar}
+                    </span>
+                    <span className="text-[11px] font-bold text-gray-400 font-mono">
+                      {quantidade} {quantidade === 1 ? 'voto' : 'votos'} ({percentual}%)
+                    </span>
+                  </div>
+
+                  <div className="text-[10px] text-gray-400 font-medium tracking-tight flex flex-wrap gap-x-2 gap-y-0.5 border-t border-white/5 pt-1.5 opacity-85">
+                    {nomes.map((nome, i) => (
+                      <span key={nome} className="inline-block whitespace-nowrap">
+                        👤 {nome}{i < nomes.length - 1 ? ',' : ''}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Tabela de Consulta Principal */}
         <div className="bg-slate-950 rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
-          <div className="max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+          <div className="max-h-[50vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-slate-900 z-10 shadow-lg border-b border-white/10">
                 <tr className="text-[10px] uppercase tracking-wider font-bold text-gray-500">
@@ -275,27 +345,27 @@ export default function TelaEspiarPalpites() {
                 {carregandoPalpites ? (
                   <tr>
                     <td colSpan={3} className="p-8 text-center text-gray-500 font-mono text-xs">
-                      Buscando registros na base...
+                      Buscando palpites dos participantes...
                     </td>
                   </tr>
                 ) : (
                   palpitesExibidos.map((p) => (
                     <tr key={p.id_perfil} className="hover:bg-white/5 transition text-sm">
-                      <td className="p-4 pl-6 font-bold text-gray-200">{p.nome_participante}</td>
-                      <td className="p-4 text-center font-black text-base text-amber-400">
+                      <td className="p-4 pl-6 font-bold text-gray-200 text-left">{p.nome_participante}</td>
+                      {/* Reduzido de text-base para text-sm dentro das caixas da tabela */}
+                      <td className="p-4 text-center font-black text-sm text-amber-400">
                         <span className="bg-black/30 px-3 py-1 rounded-lg border border-white/5 inline-block min-w-[70px] font-mono">
                           {p.palpite_casa} x {p.palpite_fora}
                         </span>
                       </td>
                       <td className="p-4 text-center">
                         {p.pontos_ganhos !== null ? (
-                          <span className={`font-mono font-black text-xs px-2.5 py-1 rounded-md ${
-                            p.pontos_ganhos === 15 
-                              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
-                              : p.pontos_ganhos === 5 
-                              ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' 
-                              : 'bg-white/5 text-gray-500'
-                          }`}>
+                          <span className={`font-mono font-black text-xs px-2.5 py-1 rounded-md ${p.pontos_ganhos === 15
+                              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                              : p.pontos_ganhos === 5
+                                ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
+                                : 'bg-white/5 text-gray-500'
+                            }`}>
                             +{p.pontos_ganhos} pts
                           </span>
                         ) : (
