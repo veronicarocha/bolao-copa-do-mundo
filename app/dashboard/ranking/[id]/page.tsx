@@ -122,19 +122,24 @@ const ORDEM_CATEGORIAS_ESPECIAIS = [
 
 const LISTA_GRUPOS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
+// 🎯 MAPA CORRIGIDO: Baseado estritamente na árvore estrutural correta de "image_24e79e.png"
 const MAPA_DEPENDENCIAS: Record<string, { casa: string; fora: string }> = {
-  'J89': { casa: 'J73', fora: 'J74' },
-  'J90': { casa: 'J75', fora: 'J76' },
-  'J91': { casa: 'J77', fora: 'J78' },
+  'J89': { casa: 'J74', fora: 'J77' },
+  'J90': { casa: 'J73', fora: 'J75' },
+  'J93': { casa: 'J83', fora: 'J84' },
+  'J94': { casa: 'J81', fora: 'J82' },
+  'J91': { casa: 'J76', fora: 'J78' },
   'J92': { casa: 'J79', fora: 'J80' },
-  'J93': { casa: 'J81', fora: 'J82' },
-  'J94': { casa: 'J83', fora: 'J84' },
-  'J95': { casa: 'J85', fora: 'J86' },
-  'J96': { casa: 'J87', fora: 'J88' },
+  'J95': { casa: 'J86', fora: 'J88' },
+  'J96': { casa: 'J85', fora: 'J87' },
+  
+  // Quartas dependem do avanço das oitavas reais mapeadas acima
   'J97': { casa: 'J89', fora: 'J90' },
-  'J98': { casa: 'J91', fora: 'J92' },
-  'J99': { casa: 'J93', fora: 'J94' },
+  'J98': { casa: 'J93', fora: 'J94' },
+  'J99': { casa: 'J91', fora: 'J92' },
   'J100': { casa: 'J95', fora: 'J96' },
+  
+  // Semifinais e Finais encadeadas
   'J101': { casa: 'J97', fora: 'J98' },
   'J102': { casa: 'J99', fora: 'J100' },
   'J104': { casa: 'J101', fora: 'J102' }
@@ -242,19 +247,16 @@ export default function VisualizarPalpites() {
       pontos_vencedor: number;
     }> = {};
 
+    for (let i = 73; i <= 104; i++) {
+      const cod = `J${i}`;
+      dadosMapeados[cod] = { codigo: cod, time_casa: '', time_fora: '', vencedor_escolhido: '', pontos_vencedor: 0 };
+    }
+
     palpitesMM.forEach(p => {
       const faseVaga = p.fase_vaga ? p.fase_vaga.trim().toUpperCase() : '';
       const baseJogo = faseVaga.split('_')[0];
 
-      if (!dadosMapeados[baseJogo]) {
-        dadosMapeados[baseJogo] = {
-          codigo: baseJogo,
-          time_casa: '',
-          time_fora: '',
-          vencedor_escolhido: '',
-          pontos_vencedor: 0
-        };
-      }
+      if (!dadosMapeados[baseJogo]) return;
 
       if (faseVaga.endsWith('_1')) {
         dadosMapeados[baseJogo].time_casa = p.selecao_escolhida || '';
@@ -274,9 +276,6 @@ export default function VisualizarPalpites() {
 
     chavesOrdenadas.forEach(jogoId => {
       const dependencias = MAPA_DEPENDENCIAS[jogoId];
-      if (!dadosMapeados[jogoId]) {
-        dadosMapeados[jogoId] = { codigo: jogoId, time_casa: '', time_fora: '', vencedor_escolhido: '', pontos_vencedor: 0 };
-      }
 
       if (!dadosMapeados[jogoId].time_casa) {
         const jogoAnterior = dadosMapeados[dependencias.casa];
@@ -288,10 +287,6 @@ export default function VisualizarPalpites() {
         dadosMapeados[jogoId].time_fora = jogoAnterior && jogoAnterior.vencedor_escolhido ? jogoAnterior.vencedor_escolhido : 'A definir';
       }
     });
-
-    if (!dadosMapeados['J103']) {
-      dadosMapeados['J103'] = { codigo: 'J103', time_casa: '', time_fora: '', vencedor_escolhido: '', pontos_vencedor: 0 };
-    }
 
     if (!dadosMapeados['J103'].time_casa) {
       const j101 = dadosMapeados['J101'];
@@ -311,11 +306,7 @@ export default function VisualizarPalpites() {
       }
     }
 
-    return Object.values(dadosMapeados).sort((a, b) => {
-      const numA = parseInt(a.codigo.replace(/\D/g, ''), 10) || 0;
-      const numB = parseInt(b.codigo.replace(/\D/g, ''), 10) || 0;
-      return numA - numB;
-    });
+    return Object.values(dadosMapeados).filter(j => j.time_casa || j.time_fora || j.vencedor_escolhido);
   }, [palpitesMM]);
 
   const palpitesGruposFiltrados = palpitesGrupos.filter((item) => {
@@ -338,7 +329,7 @@ export default function VisualizarPalpites() {
           </button>
         </div>
 
-        {/* 🎯 CABEÇALHO COM PROTEÇÃO CONTRA NOMES GRANDES */}
+        {/* CABEÇALHO */}
         <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-4 w-full">
           <div className="flex flex-col items-center md:items-start min-w-0 w-full md:flex-1">
             <span className="text-[10px] md:text-xs font-bold text-blue-400 uppercase tracking-widest block mb-1">
@@ -402,12 +393,12 @@ export default function VisualizarPalpites() {
               </div>
             ) : (
               palpitesGruposFiltrados.map((item) => {
-                const jogo = item.jogos;
-                if (!jogo) return null;
-                const jogoTevePlacarReal = jogo.gols_casa !== null && jogo.gols_fora !== null;
+                const juego = item.jogos;
+                if (!juego) return null;
+                const jogoTevePlacarReal = juego.gols_casa !== null && juego.gols_fora !== null;
 
-                const casaLimpa = removerAcentos(jogo.time_casa || '');
-                const foraLimpa = removerAcentos(jogo.time_fora || '');
+                const casaLimpa = removerAcentos(juego.time_casa || '');
+                const foraLimpa = removerAcentos(juego.time_fora || '');
 
                 const infoCronograma = CALENDARIO_OFICIAL_COMPLETO.find(x =>
                   x.confronto === `${casaLimpa} x ${foraLimpa}` ||
@@ -419,7 +410,7 @@ export default function VisualizarPalpites() {
                     <div className="flex flex-col md:flex-row items-center gap-2.5 w-full md:w-7/12 min-w-0">
                       <div className="flex items-center justify-center gap-1.5 font-mono text-[9px] md:text-[10px] w-full md:w-auto md:justify-start shrink-0">
                         <span className="px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded font-black uppercase tracking-wider">
-                          G {jogo.grupo || ''}
+                          G {juego.grupo || ''}
                         </span>
                         {infoCronograma && (
                           <span className="px-1.5 py-0.5 bg-white/5 text-gray-400 rounded border border-white/5 font-medium">
@@ -428,22 +419,21 @@ export default function VisualizarPalpites() {
                         )}
                       </div>
 
-                      {/* CONFRONTOS DA FASE DE GRUPOS */}
                       <div className="flex items-center justify-center gap-2 w-full text-center min-w-0">
-                        <span className="text-xs md:text-sm font-bold text-gray-200 truncate flex-1 text-right min-w-0">{jogo.time_casa}</span>
+                        <span className="text-xs md:text-sm font-bold text-gray-200 truncate flex-1 text-right min-w-0">{juego.time_casa}</span>
                         <span className="text-[9px] text-gray-500 font-black px-1 py-0.5 bg-white/5 rounded shrink-0">VS</span>
-                        <span className="text-xs md:text-sm font-bold text-gray-200 truncate flex-1 text-left min-w-0">{jogo.time_fora}</span>
+                        <span className="text-xs md:text-sm font-bold text-gray-200 truncate flex-1 text-left min-w-0">{juego.time_fora}</span>
                       </div>
                     </div>
 
                     <div className="flex gap-3 shrink-0 w-full md:w-auto justify-center">
-                      <div className="flex flex-col items-center justify-center bg-amber-500/5 border border-amber-500/10 px-3 py-1.5 rounded-lg min-w-[100px]">
+                      <div className="flex flex-col items-center justify-center bg-amber-500/5 border border-amber-500/10 px-3 py-1.5 rounded-lg min-w-[90px]">
                         <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider mb-0.5 text-center">Palpite</span>
-                        <div className="text-base font-black font-mono text-amber-200 text-center">{item.palpite_casa} x {item.palpite_fora}</div>
+                        <div className="text-sm font-black font-mono text-amber-200 text-center">{item.palpite_casa} x {item.palpite_fora}</div>
                       </div>
-                      <div className="flex flex-col items-center justify-center bg-slate-900 border border-white/5 px-3 py-1.5 rounded-lg min-w-[100px]">
+                      <div className="flex flex-col items-center justify-center bg-slate-900 border border-white/5 px-3 py-1.5 rounded-lg min-w-[90px]">
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 text-center">Oficial</span>
-                        <div className="text-xs font-bold font-mono text-gray-400 mt-0.5 text-center">{jogoTevePlacarReal ? `${jogo.gols_casa} x ${jogo.gols_fora}` : '— x —'}</div>
+                        <div className="text-xs font-bold font-mono text-gray-400 text-center">{jogoTevePlacarReal ? `${juego.gols_casa} x ${juego.gols_fora}` : '— x —'}</div>
                       </div>
                     </div>
                     <div className="text-center md:text-right font-mono font-black text-emerald-400 text-xs md:text-sm min-w-[50px] w-full md:w-auto">+{item.pontos_ganhos || 0} pts</div>
@@ -453,7 +443,7 @@ export default function VisualizarPalpites() {
             )
           )}
 
-          {/* ⚡ ABA 2: MATA-MATA */}
+          {/* ⚡ ABA 2: MATA-MATA (CRUZAMENTOS OFICIAIS SINCRONIZADOS COM A IMAGEM) */}
           {abaAtiva === 'matamata' && (
             confrontosProcessadosMM.length === 0 ? (
               <div className="p-8 text-center bg-slate-950 rounded-xl text-gray-500 text-sm border border-white/5">Nenhum palpite de mata-mata enviado.</div>
