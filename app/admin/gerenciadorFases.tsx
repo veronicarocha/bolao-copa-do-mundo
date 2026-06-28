@@ -2,16 +2,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
-// Lista oficial estrita com os nomes exatamente como o seu banco/calendário espera
+// Lista oficial revisada para compatibilidade total com o cadastro
 const TODAS_SELECOES_COPA = [
   'África do Sul', 'Alemanha', 'Arábia Saudita', 'Argélia', 'Argentina', 'Austrália', 'Áustria',
-  'Bélgica', 'Bósnia', 'Brasil', 'Cabo Verde', 'Canadá', 'Catar', 'Colômbia', 'Coreia do Sul',
-  'Costa do Marfim', 'Croácia', 'Curaçao', 'Egito', 'Equador', 'Escócia', 'Espanha', 'EUA',
+  'Bélgica', 'Bósnia e Herzegovina', 'Brasil', 'Cabo Verde', 'Canadá', 'Catar', 'Colômbia', 'Coreia do Sul',
+  'Costa do Marfim', 'Croácia', 'Curaçau', 'Egito', 'Equador', 'Escócia', 'Espanha', 'Estados Unidos',
   'França', 'Gana', 'Holanda', 'Haiti', 'Inglaterra', 'Irã', 'Iraque', 'Japão', 'Jordânia',
   'Marrocos', 'México', 'Noruega', 'Nova Zelândia', 'Panamá', 'Paraguai', 'Portugal',
   'RD do Congo', 'República Tcheca', 'Senegal', 'Suécia', 'Suíça', 'Tunísia', 'Turquia',
   'Uruguai', 'Uzbequistao'
-].sort((a, b) => a.localeCompare(b)); // Ordem alfabética para facilitar sua leitura
+].sort((a, b) => a.localeCompare(b));
 
 export default function GerenciadorFasesAdmin() {
   const [faseAtiva, setFaseAtiva] = useState<'dezesseis_avos' | 'oitavas' | 'quartas' | 'semi' | 'finalistas' | 'campeao'>('dezesseis_avos');

@@ -253,20 +253,22 @@ export default function VisualizarPalpites() {
     }
 
     palpitesMM.forEach(p => {
-      const faseVaga = p.fase_vaga ? p.fase_vaga.trim().toUpperCase() : '';
-      const baseJogo = faseVaga.split('_')[0];
+  const faseVaga = p.fase_vaga ? p.fase_vaga.trim().toUpperCase() : '';
+  const baseJogo = faseVaga.split('_')[0];
 
-      if (!dadosMapeados[baseJogo]) return;
+  if (!dadosMapeados[baseJogo]) return;
 
-      if (faseVaga.endsWith('_1')) {
-        dadosMapeados[baseJogo].time_casa = p.selecao_escolhida || '';
-      } else if (faseVaga.endsWith('_2')) {
-        dadosMapeados[baseJogo].time_fora = p.selecao_escolhida || '';
-      } else {
-        dadosMapeados[baseJogo].vencedor_escolhido = p.selecao_escolhida || '';
-        dadosMapeados[baseJogo].pontos_vencedor = p.pontos_ganhos || 0;
-      }
-    });
+  // Acumula absolutamente todos os pontos ganhos neste bloco de jogo (seja na entrada ou na vitória)
+  dadosMapeados[baseJogo].pontos_vencedor += p.pontos_ganhos || 0;
+
+  if (faseVaga.endsWith('_1')) {
+    dadosMapeados[baseJogo].time_casa = p.selecao_escolhida || '';
+  } else if (faseVaga.endsWith('_2')) {
+    dadosMapeados[baseJogo].time_fora = p.selecao_escolhida || '';
+  } else {
+    dadosMapeados[baseJogo].vencedor_escolhido = p.selecao_escolhida || '';
+  }
+});
 
     const chavesOrdenadas = Object.keys(MAPA_DEPENDENCIAS).sort((a, b) => {
       const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
