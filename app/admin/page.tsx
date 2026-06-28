@@ -87,7 +87,7 @@ export default function PainelAdmin() {
         if (!userId) { setDados({ grupos: [], mm: [], esp: [] }); return; }
 
         const { data: pJogos } = await supabase.from('palpites_jogos').select('*, jogos(time_casa, time_fora)').eq('user_id', userId);
-        const { data: pMM } = await supabase.from('palpites_matamata').select('*').eq('user_id', userId);
+        const { data: pMM } = await supabase.from('palpites_matamata').select('*').eq('user_id', userId).order('fase_vaga', { ascending: true });
         const { data: pEsp } = await supabase.from('palpites_especiais').select('*').eq('user_id', userId);
         const { data: ajustes } = await supabase.from('pontuacoes_manuais').select('*').eq('user_id', userId);
 
@@ -126,15 +126,20 @@ export default function PainelAdmin() {
     function removerAcentos(str: string): string {
         if (!str) return '';
         let texto = str.toLowerCase();
+
+        if (texto === 'eua') texto = 'estados unidos';
+        if (texto === 'bosnia') texto = 'bosnia e herzegovina';
+        if (texto === 'curacao' || texto === 'curacau') texto = 'curacau';
+
         const de = "áàâãäéèêëíìîïóòôõöúùûüçñ";
         const para = "aaaaaeeeeiiiiooooouuuucn";
         for (let i = 0; i < de.length; i++) {
             texto = texto.split(de[i]).join(para[i]);
         }
         texto = texto.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim();
+
         if (texto === 'ri do ira') return 'ira';
         if (texto === 'tchequia') return 'republica tcheca';
-        if (texto === 'curacao' || texto === 'curacau') return 'curacao';
         return texto;
     }
 
@@ -203,9 +208,9 @@ export default function PainelAdmin() {
 
         if (gols !== null && isNaN(gols)) return;
 
-        const jogoAtual = jogos.find(j => j.id === jogoId);
+        const juegoAtual = jogos.find(j => j.id === jogoId);
         const outroCampo = campo === 'gols_casa' ? 'gols_fora' : 'gols_casa';
-        const temPlacarCompleto = gols !== null && jogoAtual?.[outroCampo] !== null;
+        const temPlacarCompleto = gols !== null && juegoAtual?.[outroCampo] !== null;
 
         const { error } = await supabase
             .from('jogos')
@@ -227,10 +232,9 @@ export default function PainelAdmin() {
 
     const salvarResultadoEsp = async (pId: string, resposta: string) => {
         if (!resposta) return;
-        await supabase.from('resultados_especiais').upsert({ pergunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
+        await supabase.from('resultados_especiais').upsert({ pregunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
     };
 
-    // 🔥 MOTOR ANALÍTICO DEFINITIVO CONECTADO À NOVA LISTA DE CHECKBOXES
     const rodarCalculoPontuacaoGlobal = async () => {
         setProcessando(true);
         try {
@@ -239,7 +243,7 @@ export default function PainelAdmin() {
                 { data: espReal },
                 { data: ajustesManuais },
                 { data: perfis },
-                { data: fasesReais } // 🌟 Puxa a nova lista oficial por checkboxes
+                { data: fasesReais }
             ] = await Promise.all([
                 supabase.from('jogos').select('*'),
                 supabase.from('resultados_especiais').select('*'),
@@ -248,8 +252,6 @@ export default function PainelAdmin() {
                 supabase.from('resultados_fases_reais').select('*')
             ]);
 
-            // Mapeamentos analíticos rápidos por Sets limpos
-            // Mapeamentos analíticos rápidos por Sets limpos com tipagem explícita (s: string)
             const dezoitoReais = new Set(fasesReais?.find(f => f.fase === 'dezesseis_avos')?.selecoes.map((s: string) => removerAcentos(s)) || []);
             const oitavasReal = new Set(fasesReais?.find(f => f.fase === 'oitavas')?.selecoes.map((s: string) => removerAcentos(s)) || []);
             const quartasReal = new Set(fasesReais?.find(f => f.fase === 'quartas')?.selecoes.map((s: string) => removerAcentos(s)) || []);
@@ -321,8 +323,16 @@ export default function PainelAdmin() {
                     updateLoteGrupos.push({ ...p, pontos_ganhos: pts });
                 }
 
-                // B) MATA-MATA REESCRITO POR CONTENÇÃO DE LISTA DE PRESENÇA
+                // ⚡ B) MATA-MATA (LOGICA DE PRESENÇA BLINDADA COM ANÁLISE DE SUFIXO EXPLICITA)
                 for (const p of (pMM || [])) {
+                    if (!p.fase_vaga) continue;
+                    const faseLimpa = p.fase_vaga.trim().toLowerCase();
+                    
+                    // 🌟 SOLUÇÃO DA ARMADILHA: Pega apenas o token do jogo (ex: "j73_1" vira "j73") antes de limpar letras.
+                    // Isso evita que "j73_1" vire o número inexistente 731.
+                    const parteJogoBase = faseLimpa.split('_')[0];
+                    const numJogo = parseInt(parteJogoBase.replace(/[^\d]/g, ''), 10);
+                    
                     const chaveAjuste = `${perfil.id}_palpites_matamata_${p.id}`;
                     let pts = 0;
 
@@ -330,37 +340,44 @@ export default function PainelAdmin() {
                         pts = Number(mapaAjustes.get(chaveAjuste) || 0);
                     } else if (p.selecao_escolhida) {
                         const selecaoApostada = removerAcentos(p.selecao_escolhida);
-                        const faseLimpa = p.fase_vaga ? p.fase_vaga.trim().toLowerCase() : '';
-                        const numJogo = parseInt(faseLimpa.replace(/[^\d]/g, ''), 10);
 
+                        // FASE DE 16 AVOS (J73 a J88)
                         if (numJogo >= 73 && numJogo <= 88) {
-                            if (dezoitoReais.has(selecaoApostada)) pts = 5;
-                        } else if (numJogo >= 89 && numJogo <= 96) {
-                            if (oitavasReal.has(selecaoApostada)) pts = 10;
+                            // Distribui 5 pontos apenas nas entradas estritas do confronto (_1 e _2)
+                            if (faseLimpa.endsWith('_1') || faseLimpa.endsWith('_2')) {
+                                if (dezoitoReais.has(selecaoApostada)) {
+                                    pts = 5;
+                                }
+                            } else {
+                                // A linha principal do jogo (ex: "j73" pura) fica zerada de sistema,
+                                // garantindo que não duplique a contagem dos pontos das duas entradas individuais.
+                                pts = 0; 
+                            }
+                        } 
+                        // DEMAIS FASES DO MATA-MATA (Oitavas para frente baseadas em avanço de linha mãe)
+                        else if (numJogo >= 89 && numJogo <= 96) {
+                            if (!faseLimpa.includes('_') && oitavasReal.has(selecaoApostada)) pts = 10;
                         } else if (numJogo >= 97 && numJogo <= 100) {
-                            if (quartasReal.has(selecaoApostada)) pts = 20;
+                            if (!faseLimpa.includes('_') && quartasReal.has(selecaoApostada)) pts = 20;
                         } else if (numJogo === 101 || numJogo === 102) {
-                            if (semiReal.has(selecaoApostada)) pts = 25;
+                            if (!faseLimpa.includes('_') && semiReal.has(selecaoApostada)) pts = 25;
                         } else if (numJogo === 104) {
                             if (faseLimpa.includes('campeao')) {
                                 if (campeaoReal.has(selecaoApostada)) pts = 30;
-                            } else {
-                                if (finalReal.has(selecaoApostada)) pts = 30;
+                            } else if (!faseLimpa.includes('_') && finalReal.has(selecaoApostada)) {
+                                pts = 30;
                             }
                         } else if (numJogo === 103) {
-                            // 3º lugar se aplica como finalista de lista secundária
-                            if (finalReal.has(selecaoApostada)) pts = 30;
+                            if (!faseLimpa.includes('_') && finalReal.has(selecaoApostada)) pts = 30;
                         }
                     }
 
-                    if (pts > 0 && p.fase_vaga) {
-                        const faseLimpa = p.fase_vaga.trim().toLowerCase();
-                        const num = parseInt(faseLimpa.replace(/[^\d]/g, ''), 10);
-                        if (num >= 73 && num <= 88) mm16++;
-                        else if (num >= 89 && num <= 96) mm8++;
-                        else if (num >= 97 && num <= 100) mm4++;
-                        else if (num >= 101 && num <= 102) mm2++;
-                        else if (num === 103 || num === 104) {
+                    if (pts > 0) {
+                        if (numJogo >= 73 && numJogo <= 88) mm16++;
+                        else if (numJogo >= 89 && numJogo <= 96) mm8++;
+                        else if (numJogo >= 97 && numJogo <= 100) mm4++;
+                        else if (numJogo >= 101 && numJogo <= 102) mm2++;
+                        else if (numJogo === 103 || numJogo === 104) {
                             if (faseLimpa.includes('campeao')) mmCamp++;
                             mmFin++;
                         }
@@ -385,12 +402,8 @@ export default function PainelAdmin() {
                             const acertou = validarRespostaEspecial(String(p.resposta_palpite), String(realResp));
                             if (acertou) {
                                 pts = pesosEspeciais[perguntaLimpa] || 0;
-                            } else {
-                                pts = 0;
                             }
-                        } else if (realResp) {
-                            pts = 0;
-                        } else {
+                        } else if (!realResp) {
                             pts = Number(p.pontos_ganhos || 0);
                         }
                     }
@@ -444,7 +457,6 @@ export default function PainelAdmin() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto text-white space-y-10">
-            {/* Topo Administrativo */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/10 pb-6 gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-amber-400 tracking-tight">👑 Painel de Administração Geral</h1>
@@ -452,7 +464,6 @@ export default function PainelAdmin() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    {/* Chaves de Seleção de Abas */}
                     <div className="flex bg-slate-950 p-1 rounded-xl border border-white/10 gap-1 font-bold text-xs shrink-0">
                         <button
                             onClick={() => setTabAtiva('gabaritos_gerais')}
@@ -478,12 +489,10 @@ export default function PainelAdmin() {
                 </div>
             </div>
 
-            {/* CONTEÚDO DINÂMICO SEPARADO POR ABAS */}
             {tabAtiva === 'fases_checkboxes' ? (
                 <GerenciadorFasesAdmin />
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* JOGOS */}
                     <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4 max-h-[600px] overflow-y-auto">
                         <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-emerald-400">⚽ Resultados Fase de Grupos</h2>
                         <div className="space-y-3">
@@ -512,7 +521,6 @@ export default function PainelAdmin() {
                         </div>
                     </div>
 
-                    {/* MATA-MATA LEGADO E ESPECIAIS */}
                     <div className="space-y-8">
                         <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4">
                             <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-blue-400">⚡ Resultados Oficiais Mata-Mata</h2>
@@ -561,7 +569,6 @@ export default function PainelAdmin() {
                 </div>
             )}
 
-            {/* SEÇÃO DE AUDITORIA E CORREÇÃO MANUAL */}
             <div className="bg-slate-950 p-6 rounded-2xl border border-amber-500/20 mt-10">
                 <h2 className="text-xl font-black text-amber-400 mb-6">🛠️ Seção de Auditoria de Participantes</h2>
                 <select
@@ -570,7 +577,6 @@ export default function PainelAdmin() {
                     value={userSelecionado}
                 >
                     <option value="">Selecione um participante para auditar...</option>
-                    <option value="all_users" disabled>Todos os Participantes Sincronizados</option>
                     {participantes?.map(u => <option key={u.id} value={u.id}>{u.nome || 'Sem Nome'}</option>)}
                 </select>
 
@@ -618,10 +624,7 @@ function SecaoCorrecao({ titulo, itens, tabela, renderLabel, renderPalpite, onSa
     onSave: (tabela: string, id: string, valor: number) => void
 }) {
     const [aberto, setAberto] = useState(false);
-
-    const itensFiltrados = tabela === 'palpites_matamata'
-        ? itens?.filter((p: any) => !p.fase_vaga.includes('_'))
-        : itens;
+    const itensFiltrados = itens;
 
     const obterBadgeFase = (faseVaga: string) => {
         if (tabela !== 'palpites_matamata') return null;
@@ -629,8 +632,8 @@ function SecaoCorrecao({ titulo, itens, tabela, renderLabel, renderPalpite, onSa
         const num = parseInt(faseVaga.replace('J', ''), 10);
         if (isNaN(num)) return null;
 
-        if (faseVaga === 'J104') return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🏆 Final</span>;
-        if (faseVaga === 'J103') return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">🥉 3º Lugar</span>;
+        if (faseVaga.startsWith('J104')) return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🏆 Final</span>;
+        if (faseVaga.startsWith('J103')) return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">🥉 3º Lugar</span>;
         if (num >= 73 && num <= 88) return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Fase de 32</span>;
         if (num >= 89 && num <= 96) return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">Oitavas</span>;
         if (num >= 97 && num <= 100) return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">Quartas</span>;
@@ -666,7 +669,7 @@ function SecaoCorrecao({ titulo, itens, tabela, renderLabel, renderPalpite, onSa
                                     {renderPalpite(p)}
                                 </span>
                                 <span className="col-span-2 text-center text-emerald-400 font-mono font-bold text-sm">
-                                    {p.pontos_sistema_original ?? p.pontos_ganhos ?? 0}
+                                    {p.pontos_ganhos ?? 0}
                                 </span>
                                 <input
                                     key={`${p.id}_${p.pontos_ganhos}`}
