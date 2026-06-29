@@ -111,10 +111,18 @@ export default function Regras() {
                     </li>
                     <li className="flex flex-col sm:flex-row gap-3 sm:items-center bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
                         <span className="font-black text-amber-400 text-lg min-w-[220px]">
-                            🏆 GRANDE FINAL:
+                            VICE-CAMPEÃO:
                         </span>
                         <span className="text-gray-300">
-                            (Os 2 finalistas e o Campeão) — <strong className="text-amber-400">30 pontos</strong> por acerto
+                            (Vice Campeão) — <strong className="text-amber-400">35 pontos</strong> se acertar
+                        </span>
+                    </li>
+                     <li className="flex flex-col sm:flex-row gap-3 sm:items-center bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
+                        <span className="font-black text-amber-400 text-lg min-w-[220px]">
+                            🏆 GRANDE CAMPEÃO:
+                        </span>
+                        <span className="text-gray-300">
+                            (o Campeão!) — <strong className="text-amber-400">70 pontos</strong>
                         </span>
                     </li>
                 </ul>
