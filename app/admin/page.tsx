@@ -327,12 +327,12 @@ export default function PainelAdmin() {
                 for (const p of (pMM || [])) {
                     if (!p.fase_vaga) continue;
                     const faseLimpa = p.fase_vaga.trim().toLowerCase();
-                    
+
                     // 🌟 SOLUÇÃO DA ARMADILHA: Pega apenas o token do jogo (ex: "j73_1" vira "j73") antes de limpar letras.
                     // Isso evita que "j73_1" vire o número inexistente 731.
                     const parteJogoBase = faseLimpa.split('_')[0];
                     const numJogo = parseInt(parteJogoBase.replace(/[^\d]/g, ''), 10);
-                    
+
                     const chaveAjuste = `${perfil.id}_palpites_matamata_${p.id}`;
                     let pts = 0;
 
@@ -341,34 +341,42 @@ export default function PainelAdmin() {
                     } else if (p.selecao_escolhida) {
                         const selecaoApostada = removerAcentos(p.selecao_escolhida);
 
-                        // FASE DE 16 AVOS (J73 a J88)
+                        // 16 AVOS (J73 a J88) -> 5 pontos por acerto (Apenas nas entradas estritas _1 e _2)
                         if (numJogo >= 73 && numJogo <= 88) {
-                            // Distribui 5 pontos apenas nas entradas estritas do confronto (_1 e _2)
                             if (faseLimpa.endsWith('_1') || faseLimpa.endsWith('_2')) {
                                 if (dezoitoReais.has(selecaoApostada)) {
                                     pts = 5;
                                 }
                             } else {
-                                // A linha principal do jogo (ex: "j73" pura) fica zerada de sistema,
-                                // garantindo que não duplique a contagem dos pontos das duas entradas individuais.
-                                pts = 0; 
+                                pts = 0;
                             }
-                        } 
-                        // DEMAIS FASES DO MATA-MATA (Oitavas para frente baseadas em avanço de linha mãe)
+                        }
+                        // OITAVAS DE FINAL (J89 a J96) -> 10 pontos por acerto
                         else if (numJogo >= 89 && numJogo <= 96) {
                             if (!faseLimpa.includes('_') && oitavasReal.has(selecaoApostada)) pts = 10;
-                        } else if (numJogo >= 97 && numJogo <= 100) {
+                        }
+                        // QUARTAS DE FINAL (J97 a J100) -> 20 pontos por acerto
+                        else if (numJogo >= 97 && numJogo <= 100) {
                             if (!faseLimpa.includes('_') && quartasReal.has(selecaoApostada)) pts = 20;
-                        } else if (numJogo === 101 || numJogo === 102) {
+                        }
+                        // SEMIFINAIS (J101 e J102) -> 25 pontos por acerto (Quem carimba presença na semifinal)
+                        else if (numJogo === 101 || numJogo === 102) {
                             if (!faseLimpa.includes('_') && semiReal.has(selecaoApostada)) pts = 25;
-                        } else if (numJogo === 104) {
-                            if (faseLimpa.includes('campeao')) {
-                                if (campeaoReal.has(selecaoApostada)) pts = 30;
-                            } else if (!faseLimpa.includes('_') && finalReal.has(selecaoApostada)) {
-                                pts = 30;
+                        }
+                        // DISPUTA DE 3º LUGAR (J103) -> 20 pontos por acerto
+                        else if (numJogo === 103) {
+                            if (!faseLimpa.includes('_') && finalReal.has(selecaoApostada)) pts = 20;
+                        }
+                        // GRANDE FINAL (J104) -> Regras Específicas de Campeão (70 pts) e Vice (35 pts)
+                        else if (numJogo === 104) {
+                            // A chave 'j104' pura representa o palpite do usuário para o Campeão da Copa
+                            if (faseLimpa === 'j104') {
+                                if (campeaoReal.has(selecaoApostada)) pts = 70;
                             }
-                        } else if (numJogo === 103) {
-                            if (!faseLimpa.includes('_') && finalReal.has(selecaoApostada)) pts = 30;
+                            // Sub-chaves ou linhas adicionais representam o palpite do Vice-Campeão
+                            else if (!faseLimpa.includes('_') || faseLimpa.includes('vice')) {
+                                if (finalReal.has(selecaoApostada)) pts = 35;
+                            }
                         }
                     }
 
@@ -378,7 +386,7 @@ export default function PainelAdmin() {
                         else if (numJogo >= 97 && numJogo <= 100) mm4++;
                         else if (numJogo >= 101 && numJogo <= 102) mm2++;
                         else if (numJogo === 103 || numJogo === 104) {
-                            if (faseLimpa.includes('campeao')) mmCamp++;
+                            if (faseLimpa === 'j104') mmCamp++;
                             mmFin++;
                         }
                     }
