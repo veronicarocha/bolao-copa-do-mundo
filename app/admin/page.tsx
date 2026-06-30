@@ -12,6 +12,27 @@ interface DadosPalpites {
     esp: any[];
 }
 
+// 🎯 MAPA ESTRUTURAL DAS DEPENDÊNCIAS DO MATA-MATA (Baseado na árvore de palpites)
+const MAPA_DEPENDENCIAS_MOTOR: Record<string, { casa: string; fora: string }> = {
+    'J89': { casa: 'J74', fora: 'J77' },
+    'J90': { casa: 'J73', fora: 'J75' },
+    'J93': { casa: 'J83', fora: 'J84' },
+    'J94': { casa: 'J81', fora: 'J82' },
+    'J91': { casa: 'J76', fora: 'J78' },
+    'J92': { casa: 'J79', fora: 'J80' },
+    'J95': { casa: 'J86', fora: 'J88' },
+    'J96': { casa: 'J85', fora: 'J87' },
+    
+    'J97': { casa: 'J89', fora: 'J90' },
+    'J98': { casa: 'J93', fora: 'J94' },
+    'J99': { casa: 'J91', fora: 'J92' },
+    'J100': { casa: 'J95', fora: 'J96' },
+    
+    'J101': { casa: 'J97', fora: 'J98' },
+    'J102': { casa: 'J99', fora: 'J100' },
+    'J104': { casa: 'J101', fora: 'J102' }
+};
+
 function validarRespostaEspecial(respostaParticipante: string, termoValidacao: string): boolean {
     if (!respostaParticipante || !termoValidacao) return false;
 
@@ -232,7 +253,7 @@ export default function PainelAdmin() {
 
     const salvarResultadoEsp = async (pId: string, resposta: string) => {
         if (!resposta) return;
-        await supabase.from('resultados_especiais').upsert({ pregunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
+        await supabase.from('resultados_especiais').upsert({ pergunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
     };
 
     const rodarCalculoPontuacaoGlobal = async () => {
@@ -323,13 +344,11 @@ export default function PainelAdmin() {
                     updateLoteGrupos.push({ ...p, pontos_ganhos: pts });
                 }
 
-                // ⚡ B) MATA-MATA (LOGICA DE PRESENÇA BLINDADA COM ANÁLISE DE SUFIXO EXPLICITA)
+                // ⚡ B) MATA-MATA (LOGICA CORRIGIDA POR ARVORE DE DEPENDENCIAS DE PALPITES)
                 for (const p of (pMM || [])) {
                     if (!p.fase_vaga) continue;
                     const faseLimpa = p.fase_vaga.trim().toLowerCase();
 
-                    // 🌟 SOLUÇÃO DA ARMADILHA: Pega apenas o token do jogo (ex: "j73_1" vira "j73") antes de limpar letras.
-                    // Isso evita que "j73_1" vire o número inexistente 731.
                     const parteJogoBase = faseLimpa.split('_')[0];
                     const numJogo = parseInt(parteJogoBase.replace(/[^\d]/g, ''), 10);
 
@@ -338,53 +357,103 @@ export default function PainelAdmin() {
 
                     if (mapaAjustes.has(chaveAjuste)) {
                         pts = Number(mapaAjustes.get(chaveAjuste) || 0);
-                    } else if (p.selecao_escolhida) {
-                        const selecaoApostada = removerAcentos(p.selecao_escolhida);
-
-                        // 16 AVOS (J73 a J88) -> 5 pontos por acerto (Apenas nas entradas estritas _1 e _2)
+                    } else {
+                        // 16 AVOS (J73 a J88) -> 5 pontos por acerto nas entradas estritas _1 e _2
                         if (numJogo >= 73 && numJogo <= 88) {
                             if (faseLimpa.endsWith('_1') || faseLimpa.endsWith('_2')) {
-                                if (dezoitoReais.has(selecaoApostada)) {
+                                if (p.selecao_escolhida && dezoitoReais.has(removerAcentos(p.selecao_escolhida))) {
                                     pts = 5;
                                 }
                             } else {
                                 pts = 0;
                             }
                         }
-                        // OITAVAS DE FINAL (J89 a J96) -> 10 pontos por acerto
+                        // OITAVAS DE FINAL (J89 a J96) -> 10 pontos por acerto de cada seleção que ele trouxe dos 16 avos
                         else if (numJogo >= 89 && numJogo <= 96) {
-                            if (!faseLimpa.includes('_') && oitavasReal.has(selecaoApostada)) pts = 10;
+                            if (!faseLimpa.includes('_')) {
+                                const deps = MAPA_DEPENDENCIAS_MOTOR[p.fase_vaga.trim().toUpperCase()];
+                                if (deps) {
+                                    // 🌟 Correção aqui: Adicionado o "|| []" para garantir que seja um array antes de buscar
+                                    const listaPalpitesMM = pMM || [];
+                                    const palpiteCasa = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === deps.casa)?.selecao_escolhida;
+                                    const palpiteFora = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === deps.fora)?.selecao_escolhida;
+
+                                    let pontosRodada = 0;
+                                    if (palpiteCasa && oitavasReal.has(removerAcentos(palpiteCasa))) pontosRodada += 10;
+                                    if (palpiteFora && oitavasReal.has(removerAcentos(palpiteFora))) pontosRodada += 10;
+                                    pts = pontosRodada;
+                                }
+                            } else {
+                                pts = 0;
+                            }
                         }
-                        // QUARTAS DE FINAL (J97 a J100) -> 20 pontos por acerto
+                        // QUARTAS DE FINAL (J97 a J100) -> 20 pontos por acerto de presença vinda das Oitavas
                         else if (numJogo >= 97 && numJogo <= 100) {
-                            if (!faseLimpa.includes('_') && quartasReal.has(selecaoApostada)) pts = 20;
+                            if (!faseLimpa.includes('_')) {
+                                const deps = MAPA_DEPENDENCIAS_MOTOR[p.fase_vaga.trim().toUpperCase()];
+                                if (deps) {
+                                    const listaPalpitesMM = pMM || [];
+                                    const palpiteCasa = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === deps.casa)?.selecao_escolhida;
+                                    const palpiteFora = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === deps.fora)?.selecao_escolhida;
+
+                                    let pontosRodada = 0;
+                                    if (palpiteCasa && quartasReal.has(removerAcentos(palpiteCasa))) pontosRodada += 20;
+                                    if (palpiteFora && quartasReal.has(removerAcentos(palpiteFora))) pontosRodada += 20;
+                                    pts = pontosRodada;
+                                }
+                            } else {
+                                pts = 0;
+                            }
                         }
-                        // SEMIFINAIS (J101 e J102) -> 25 pontos por acerto (Quem carimba presença na semifinal)
+                        // SEMIFINAIS (J101 e J102) -> 25 pontos por acerto de presença vinda das Quartas
                         else if (numJogo === 101 || numJogo === 102) {
-                            if (!faseLimpa.includes('_') && semiReal.has(selecaoApostada)) pts = 25;
+                            if (!faseLimpa.includes('_')) {
+                                const deps = MAPA_DEPENDENCIAS_MOTOR[p.fase_vaga.trim().toUpperCase()];
+                                if (deps) {
+                                    const listaPalpitesMM = pMM || [];
+                                    const palpiteCasa = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === deps.casa)?.selecao_escolhida;
+                                    const palpiteFora = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === deps.fora)?.selecao_escolhida;
+
+                                    let pontosRodada = 0;
+                                    if (palpiteCasa && semiReal.has(removerAcentos(palpiteCasa))) pontosRodada += 25;
+                                    if (palpiteFora && semiReal.has(removerAcentos(palpiteFora))) pontosRodada += 25;
+                                    pts = pontosRodada;
+                                }
+                            } else {
+                                pts = 0;
+                            }
                         }
                         // DISPUTA DE 3º LUGAR (J103) -> 20 pontos por acerto
                         else if (numJogo === 103) {
-                            if (!faseLimpa.includes('_') && finalReal.has(selecaoApostada)) pts = 20;
-                        }
-                        // GRANDE FINAL (J104) -> Regras Específicas de Campeão (70 pts) e Vice (35 pts)
-                        else if (numJogo === 104) {
-                            // A chave 'j104' pura representa o palpite do usuário para o Campeão da Copa
-                            if (faseLimpa === 'j104') {
-                                if (campeaoReal.has(selecaoApostada)) pts = 70;
+                            if (!faseLimpa.includes('_') && p.selecao_escolhida && finalReal.has(removerAcentos(p.selecao_escolhida))) {
+                                pts = 20;
                             }
-                            // Sub-chaves ou linhas adicionais representam o palpite do Vice-Campeão
-                            else if (!faseLimpa.includes('_') || faseLimpa.includes('vice')) {
-                                if (finalReal.has(selecaoApostada)) pts = 35;
+                        }
+                        // GRANDE FINAL (J104) -> Campeão (70 pts) e Vice (35 pts)
+                        else if (numJogo === 104) {
+                            if (p.selecao_escolhida) {
+                                const selecaoApostada = removerAcentos(p.selecao_escolhida);
+                                if (faseLimpa === 'j104') {
+                                    if (campeaoReal.has(selecaoApostada)) pts = 70;
+                                } else if (!faseLimpa.includes('_') || faseLimpa.includes('vice')) {
+                                    if (finalReal.has(selecaoApostada)) pts = 35;
+                                }
                             }
                         }
                     }
 
+                    // Contadores de estatísticas para a tela de ranking
                     if (pts > 0) {
                         if (numJogo >= 73 && numJogo <= 88) mm16++;
-                        else if (numJogo >= 89 && numJogo <= 96) mm8++;
-                        else if (numJogo >= 97 && numJogo <= 100) mm4++;
-                        else if (numJogo >= 101 && numJogo <= 102) mm2++;
+                        else if (numJogo >= 89 && numJogo <= 96) {
+                            mm8 += (pts === 20 ? 2 : 1);
+                        }
+                        else if (numJogo >= 97 && numJogo <= 100) {
+                            mm4 += (pts === 40 ? 2 : 1);
+                        }
+                        else if (numJogo >= 101 && numJogo <= 102) {
+                            mm2 += (pts === 50 ? 2 : 1);
+                        }
                         else if (numJogo === 103 || numJogo === 104) {
                             if (faseLimpa === 'j104') mmCamp++;
                             mmFin++;
