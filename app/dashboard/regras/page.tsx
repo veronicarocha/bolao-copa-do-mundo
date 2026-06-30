@@ -114,7 +114,7 @@ export default function Regras() {
                             TERCEIRO e QUARTO:
                         </span>
                         <span className="text-gray-300">
-                            (As 2 seleções exatas) — <strong className="text-pink-400">25 pontos</strong> por acerto
+                            (As 2 seleções) — <strong className="text-pink-400">25 pontos</strong> se na posição exata
                         </span>
                     </li>
                     <li className="flex flex-col sm:flex-row gap-3 sm:items-center bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
