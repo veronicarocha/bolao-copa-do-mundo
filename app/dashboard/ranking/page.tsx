@@ -58,42 +58,16 @@ export default function PaginaRanking() {
     <div className="min-h-screen w-full bg-slate-900 p-4 md:p-12 text-white">
       <div className="max-w-7xl mx-auto space-y-6">
 
-
         {/* Cabeçalho */}
         <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-
-          {/* Título e Legendas */}
           <div className="space-y-4">
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-amber-400">
               🏆 Classificação Geral
             </h1>
-
-            {/* Painel de Legendas (Explicativo) 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <p className="text-[11px] text-gray-300">Quantidade de acertos em...</p>
-
-              <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-lg">
-                <span className="text-blue-400 font-black text-[10px] bg-blue-500/20 px-1.5 rounded">PE</span>
-                <span className="text-[11px] text-gray-300">Placares Exatos (15 pts)</span>
-              </div>
-              <div className="flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 rounded-lg">
-                <span className="text-sky-400 font-black text-[10px] bg-sky-500/20 px-1.5 rounded">RES</span>
-                <span className="text-[11px] text-gray-300">Resultado / Vencedor (5 pts)</span>
-              </div>
-              <div className="flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 rounded-lg">
-                <span className="text-sky-400 font-black text-[10px] bg-sky-500/20 px-1.5 rounded">ESP</span>
-                <span className="text-[11px] text-gray-300">Palpite Especial</span>
-              </div>
-            </div> */}
           </div>
-
-          {/* Contador de Participantes 
-          <div className="bg-black/30 border border-white/5 px-6 py-4 rounded-xl text-center shrink-0 w-full md:w-auto">
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Participantes</p>
-            <p className="text-3xl font-black text-emerald-400">{ranking.length}</p>
-          </div>*/}
         </div>
-        {/* TABELA CORRIGIDA: Apenas um container, um cabeçalho, um tbody */}
+
+        {/* TABELA CONTAINER */}
         <div className="bg-slate-950 rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
           <div className="max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
             <table className="w-full text-left border-collapse">
@@ -112,15 +86,19 @@ export default function PaginaRanking() {
                   <th className="p-4 text-center text-indigo-400">Oitavas</th>
                   <th className="p-4 text-center text-pink-400">Quartas</th>
                   <th className="p-4 text-center text-orange-400">Semi</th>
+                  <th className="p-4 text-center text-rose-400">Vice</th>
                   <th className="p-4 text-center text-amber-400">Campeão</th>
                 </tr>
               </thead>
 
-              {/* CORPO ÚNICO COM O MAP() */}
+              {/* CORPO DA TABELA */}
               <tbody className="divide-y divide-white/5">
                 {ranking.map((p, index) => {
                   const posicao = index + 1;
                   const badge = posicao === 1 ? '🥇' : posicao === 2 ? '🥈' : posicao === 3 ? '🥉' : posicao === 4 ? '🏅' : `${posicao}º`;
+
+                  // 🧠 Subtrai o acerto do campeão para isolar estritamente o acerto do Vice
+                  const acertosVice = Math.max(0, (p.acertos_finalistas || 0) - (p.acertos_campeao || 0));
 
                   return (
                     <tr key={p.id} className="hover:bg-white/5 transition text-sm items-center">
@@ -139,6 +117,7 @@ export default function PaginaRanking() {
                       <td className="p-4 text-center text-indigo-400">{p.acertos_oitavas || 0}</td>
                       <td className="p-4 text-center text-pink-400">{p.acertos_quartas || 0}</td>
                       <td className="p-4 text-center text-orange-400">{p.acertos_semi || 0}</td>
+                      <td className="p-4 text-center text-rose-400 font-bold">{acertosVice}</td>
                       <td className="p-4 text-center text-amber-400 font-black">{p.acertos_campeao || 0}</td>
                     </tr>
                   );
@@ -151,4 +130,4 @@ export default function PaginaRanking() {
       </div>
     </div>
   );
-};
+}
