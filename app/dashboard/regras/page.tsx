@@ -114,7 +114,7 @@ export default function Regras() {
                             TERCEIRO e QUARTO:
                         </span>
                         <span className="text-gray-300">
-                            (As 2 seleções) — <strong className="text-pink-400">25 pontos</strong> se na posição exata
+                            (As 2 seleções) — <strong className="text-pink-400">25 pontos</strong> para seleção na posição correta
                         </span>
                     </li>
                     <li className="flex flex-col sm:flex-row gap-3 sm:items-center bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
@@ -122,7 +122,7 @@ export default function Regras() {
                             VICE-CAMPEÃO:
                         </span>
                         <span className="text-gray-300">
-                            (Vice Campeão) — <strong className="text-amber-400">35 pontos</strong> se acertar
+                            (Vice Campeão) — <strong className="text-amber-400">35 pontos</strong> se seleção correta
                         </span>
                     </li>
                      <li className="flex flex-col sm:flex-row gap-3 sm:items-center bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
@@ -130,7 +130,7 @@ export default function Regras() {
                             🏆 GRANDE CAMPEÃO:
                         </span>
                         <span className="text-gray-300">
-                            (o Campeão!) — <strong className="text-amber-400">70 pontos</strong>
+                            (o Campeão!) — <strong className="text-amber-400">70 pontos</strong> se seleção correta
                         </span>
                     </li>
                 </ul>
