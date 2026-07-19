@@ -14,7 +14,9 @@ const TODAS_SELECOES_COPA = [
 ].sort((a, b) => a.localeCompare(b));
 
 export default function GerenciadorFasesAdmin() {
-  const [faseAtiva, setFaseAtiva] = useState<'dezesseis_avos' | 'oitavas' | 'quartas' | 'semi' | 'finalistas' | 'campeao'>('dezesseis_avos');
+  const [faseAtiva, setFaseAtiva] = useState<
+    'dezesseis_avos' | 'oitavas' | 'quartas' | 'semi' | 'terceiro' | 'quarto' | 'finalistas' | 'campeao'
+  >('dezesseis_avos');
   const [selecoesMarcadas, setSelecoesMarcadas] = useState<string[]>([]);
   const [salvando, setSalvando] = useState(false);
 
@@ -24,8 +26,22 @@ export default function GerenciadorFasesAdmin() {
     oitavas: 16,
     quartas: 8,
     semi: 4,
-    finalistas: 2,
-    campeao: 1
+    terceiro: 1,    // 🌟 Adicionado para o 3º colocado (25 pts)
+    quarto: 1,      // 🌟 Adicionado para o 4º colocado (25 pts)
+    finalistas: 2,  // Mantém os finalistas reais (para o cálculo do Vice de 35 pts)
+    campeao: 1      // Grande Campeão (70 pts)
+  };
+
+  // Mapeamento visual amigável dos nomes para evitar strings cruas na tela
+  const NOMES_EXIBICAO_FASES: Record<string, string> = {
+    dezesseis_avos: '16 Avos',
+    oitavas: 'Oitavas',
+    quartas: 'Quartas',
+    semi: 'Semi',
+    terceiro: '3º Lugar',
+    quarto: '4º Lugar',
+    finalistas: 'Vice',
+    campeao: 'Campeão'
   };
 
   // Carrega os dados salvos no banco toda vez que você mudar de aba no admin
@@ -53,7 +69,7 @@ export default function GerenciadorFasesAdmin() {
       }
       // Valida o limite estrito da fase selecionada
       if (prev.length >= LIMITES_FASE[faseAtiva]) {
-        alert(`Atenção: A fase ${faseAtiva} aceita no máximo ${LIMITES_FASE[faseAtiva]} seleções classificadas!`);
+        alert(`Atenção: A fase ${NOMES_EXIBICAO_FASES[faseAtiva]} aceita no máximo ${LIMITES_FASE[faseAtiva]} seleção(ões) classificada(s)!`);
         return prev;
       }
       return [...prev, pais];
@@ -62,7 +78,7 @@ export default function GerenciadorFasesAdmin() {
 
   const salvarNoBanco = async () => {
     if (selecoesMarcadas.length !== LIMITES_FASE[faseAtiva]) {
-      if (!confirm(`Atenção: Você marcou ${selecoesMarcadas.length} seleções, mas o esperado para esta fase são exatamente ${LIMITES_FASE[faseAtiva]}. Deseja salvar assim mesmo?`)) {
+      if (!confirm(`Atenção: Você marcou ${selecoesMarcadas.length} seleção(ões), mas o esperado para esta fase são exatamente ${LIMITES_FASE[faseAtiva]}. Deseja salvar assim mesmo?`)) {
         return;
       }
     }
@@ -103,7 +119,7 @@ export default function GerenciadorFasesAdmin() {
               faseAtiva === fase ? 'bg-amber-500 text-slate-950 font-black' : 'text-gray-400 hover:text-white'
             }`}
           >
-            {fase.replace('_', ' ')} ({LIMITES_FASE[fase]})
+            {NOMES_EXIBICAO_FASES[fase]} ({LIMITES_FASE[fase]})
           </button>
         ))}
       </div>
@@ -125,7 +141,7 @@ export default function GerenciadorFasesAdmin() {
                 type="checkbox"
                 checked={estáMarcado}
                 onChange={() => handleAlternarSelecao(pais)}
-                className="hidden" // Esconde o checkbox feio nativo do HTML
+                className="hidden"
               />
               <span className="text-base">{estáMarcado ? '✅' : '⬜'}</span>
               <span className="truncate">{pais}</span>
@@ -144,7 +160,7 @@ export default function GerenciadorFasesAdmin() {
           disabled={salvando}
           className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-xl transition disabled:opacity-50 tracking-wide uppercase text-xs"
         >
-          {salvando ? '🔄 Sincronizando...' : '💾 Salvar Lista Oficial'}
+          {salvando ? '🔄 Sincronizando ...' : '💾 Salvar Lista Oficial'}
         </button>
       </div>
     </div>
