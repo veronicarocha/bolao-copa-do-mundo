@@ -16,6 +16,8 @@ interface PerfilRanking {
   acertos_semi: number;
   acertos_finalistas: number;
   acertos_campeao: number;
+  acertos_terceiro: number; // 🌟 Adicionado
+  acertos_quarto: number;   // 🌟 Adicionado
 }
 
 export default function PaginaRanking() {
@@ -30,8 +32,9 @@ export default function PaginaRanking() {
           .from('perfis')
           .select(`
             id, nome, pontos, placares_exatos, acertos_vencedor, especiais_acertos,
-            acertos_16avos, acertos_oitavas, acertos_quartas, acertos_semi, acertos_finalistas, acertos_campeao
-          `);
+            acertos_16avos, acertos_oitavas, acertos_quartas, acertos_semi, acertos_finalistas, acertos_campeao,
+            acertos_terceiro, acertos_quarto
+          `); // 🌟 Inclusão dos novos campos na busca
 
         if (error) throw error;
 
@@ -86,6 +89,8 @@ export default function PaginaRanking() {
                   <th className="p-4 text-center text-indigo-400">Oitavas</th>
                   <th className="p-4 text-center text-pink-400">Quartas</th>
                   <th className="p-4 text-center text-orange-400">Semi</th>
+                  <th className="p-4 text-center text-amber-600">3º Lugar</th> {/* 🌟 Nova Coluna */}
+                  <th className="p-4 text-center text-teal-400">4º Lugar</th>  {/* 🌟 Nova Coluna */}
                   <th className="p-4 text-center text-rose-400">Vice</th>
                   <th className="p-4 text-center text-amber-400">Campeão</th>
                 </tr>
@@ -117,6 +122,8 @@ export default function PaginaRanking() {
                       <td className="p-4 text-center text-indigo-400">{p.acertos_oitavas || 0}</td>
                       <td className="p-4 text-center text-pink-400">{p.acertos_quartas || 0}</td>
                       <td className="p-4 text-center text-orange-400">{p.acertos_semi || 0}</td>
+                      <td className="p-4 text-center text-amber-600 font-bold">{p.acertos_terceiro || 0}</td> {/* 🌟 Render 3º */}
+                      <td className="p-4 text-center text-teal-400 font-bold">{p.acertos_quarto || 0}</td>  {/* 🌟 Render 4º */}
                       <td className="p-4 text-center text-rose-400 font-bold">{acertosVice}</td>
                       <td className="p-4 text-center text-amber-400 font-black">{p.acertos_campeao || 0}</td>
                     </tr>

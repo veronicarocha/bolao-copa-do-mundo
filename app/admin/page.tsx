@@ -336,7 +336,7 @@ export default function PainelAdmin() {
                     updateLoteGrupos.push({ ...p, pontos_ganhos: pts });
                 }
 
-                // ⚡ B) MATA-MATA (LOGICA CORRIGIDA POR ARVORE DE DEPENDENCIAS DE PALPITES)
+                // ⚡ B) MATA-MATA
                 for (const p of (pMM || [])) {
                     if (!p.fase_vaga) continue;
                     const faseLimpa = p.fase_vaga.trim().toLowerCase();
@@ -350,7 +350,6 @@ export default function PainelAdmin() {
                     if (mapaAjustes.has(keyAjuste)) {
                         pts = Number(mapaAjustes.get(keyAjuste) || 0);
                     } else {
-                        // 16 AVOS (J73 a J88) -> 5 pontos por acerto nas entradas estritas _1 e _2
                         if (numJogo >= 73 && numJogo <= 88) {
                             if (faseLimpa.endsWith('_1') || faseLimpa.endsWith('_2')) {
                                 if (p.selecao_escolhida && dezoitoReais.has(removerAcentos(p.selecao_escolhida))) {
@@ -360,7 +359,6 @@ export default function PainelAdmin() {
                                 pts = 0;
                             }
                         }
-                        // OITAVAS DE FINAL (J89 a J96) -> 10 pontos por acerto de cada seleção que ele trouxe dos 16 avos
                         else if (numJogo >= 89 && numJogo <= 96) {
                             if (!faseLimpa.includes('_')) {
                                 const deps = MAPA_DEPENDENCIAS_MOTOR[p.fase_vaga.trim().toUpperCase()];
@@ -378,7 +376,6 @@ export default function PainelAdmin() {
                                 pts = 0;
                             }
                         }
-                        // QUARTAS DE FINAL (J97 a J100) -> 20 pontos por acerto de presença vinda das Oitavas
                         else if (numJogo >= 97 && numJogo <= 100) {
                             if (!faseLimpa.includes('_')) {
                                 const deps = MAPA_DEPENDENCIAS_MOTOR[p.fase_vaga.trim().toUpperCase()];
@@ -396,7 +393,6 @@ export default function PainelAdmin() {
                                 pts = 0;
                             }
                         }
-                        // SEMIFINAIS (J101 e J102) -> 25 pontos por acerto de presença vinda das Quartas
                         else if (numJogo === 101 || numJogo === 102) {
                             if (!faseLimpa.includes('_')) {
                                 const deps = MAPA_DEPENDENCIAS_MOTOR[p.fase_vaga.trim().toUpperCase()];
@@ -414,20 +410,23 @@ export default function PainelAdmin() {
                                 pts = 0;
                             }
                         }
-                        // DISPUTA DE 3º LUGAR (J103) -> 3º Lugar (25 pts) e 4º Lugar (25 pts)
+                        // 🛠️ DISPUTA DE 3º LUGAR (J103) -> CORRIGIDO PARA POSIÇÃO EXATA
                         else if (numJogo === 103) {
-                            if (!faseLimpa.includes('_') && p.selecao_escolhida) {
+                            if (p.selecao_escolhida) {
                                 const selecaoApostada = removerAcentos(p.selecao_escolhida);
                                 
-                                if (terceiroReal.has(selecaoApostada)) {
-                                    pts = 25;
-                                } 
-                                else if (quartoReal.has(selecaoApostada)) {
-                                    pts = 25;
+                                // Verifica a string da chave estrutural do palpite para saber a vaga pretendida
+                                if (faseLimpa === 'j103_3' || faseLimpa.includes('terceiro')) {
+                                    if (terceiroReal.has(selecaoApostada)) pts = 25;
+                                } else if (faseLimpa === 'j103_4' || faseLimpa.includes('quarto')) {
+                                    if (quartoReal.has(selecaoApostada)) pts = 25;
+                                } else {
+                                    // Fallback caso sua string estrutural seja 'j103_1' (casa/3º) ou 'j103_2' (fora/4º)
+                                    if (faseLimpa.endsWith('_1') && terceiroReal.has(selecaoApostada)) pts = 25;
+                                    if (faseLimpa.endsWith('_2') && quartoReal.has(selecaoApostada)) pts = 25;
                                 }
                             }
                         }
-                        // GRANDE FINAL (J104) -> Campeão (70 pts) e Vice (35 pts)
                         else if (numJogo === 104) {
                             if (p.selecao_escolhida) {
                                 const selecaoApostada = removerAcentos(p.selecao_escolhida);
