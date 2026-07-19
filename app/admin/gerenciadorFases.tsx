@@ -160,7 +160,7 @@ export default function GerenciadorFasesAdmin() {
           disabled={salvando}
           className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black rounded-xl transition disabled:opacity-50 tracking-wide uppercase text-xs"
         >
-          {salvando ? '🔄 Sincronizando...' : '💾 Salvar Lista Oficial'}
+          {salvando ? '🔄 Sincronizando ...' : '💾 Salvar Lista Oficial'}
         </button>
       </div>
     </div>
