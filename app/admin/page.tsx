@@ -75,7 +75,6 @@ export default function PainelAdmin() {
     const [tabAtiva, setTabAtiva] = useState<'gabaritos_gerais' | 'fases_checkboxes'>('gabaritos_gerais');
 
     const [jogos, setJogos] = useState<any[]>([]);
-    const [resultadosMM, setResultadosMM] = useState<Record<string, string>>({});
     const [resultadosEsp, setResultadosEsp] = useState<Record<string, string>>({});
 
     const [participantes, setParticipantes] = useState<any[]>([]);
@@ -177,11 +176,6 @@ export default function PainelAdmin() {
             const { data: listaJogos } = await supabase.from('jogos').select('*').order('id', { ascending: true });
             setJogos(listaJogos || []);
 
-            const { data: listaMM } = await supabase.from('resultados_matamata').select('*');
-            const mapaMM: Record<string, string> = {};
-            listaMM?.forEach(x => { if (x.fase_vaga) mapaMM[x.fase_vaga.trim()] = x.selecao_real; });
-            setResultadosMM(mapaMM);
-
             const { data: listaEsp } = await supabase.from('resultados_especiais').select('*');
             const mapaEsp: Record<string, string> = {};
             listaEsp?.forEach(x => { if (x.pergunta_id) mapaEsp[x.pergunta_id.trim()] = x.resposta_real; });
@@ -246,11 +240,6 @@ export default function PainelAdmin() {
         }
     };
 
-    const salvarResultadoMM = async (faseVaga: string, selecao: string) => {
-        if (!selecao) return;
-        await supabase.from('resultados_matamata').upsert({ fase_vaga: faseVaga.trim(), selecao_real: selecao.trim() }, { onConflict: 'fase_vaga' });
-    };
-
     const salvarResultadoEsp = async (pId: string, resposta: string) => {
         if (!resposta) return;
         await supabase.from('resultados_especiais').upsert({ pergunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
@@ -279,6 +268,8 @@ export default function PainelAdmin() {
             const semiReal = new Set(fasesReais?.find(f => f.fase === 'semi')?.selecoes.map((s: string) => removerAcentos(s)) || []);
             const finalReal = new Set(fasesReais?.find(f => f.fase === 'finalistas')?.selecoes.map((s: string) => removerAcentos(s)) || []);
             const campeaoReal = new Set(fasesReais?.find(f => f.fase === 'campeao')?.selecoes.map((s: string) => removerAcentos(s)) || []);
+            const terceiroReal = new Set(fasesReais?.find(f => f.fase === 'terceiro')?.selecoes.map((s: string) => removerAcentos(s)) || []);
+            const quartoReal = new Set(fasesReais?.find(f => f.fase === 'quarto')?.selecoes.map((s: string) => removerAcentos(s)) || []);
 
             const mapaEspReal = new Map(espReal?.map(x => [x.pergunta_id.trim().toLowerCase(), x.resposta_real.trim()]));
             const mapaAjustes = new Map(ajustesManuais?.map(x => [`${x.user_id}_${x.tabela_origem}_${x.referencia_id}`, x.pontos_ajustados]));
@@ -303,6 +294,7 @@ export default function PainelAdmin() {
                 let acertosVencedor = 0;
                 let especiaisAcertos = 0;
                 let mm16 = 0, mm8 = 0, mm4 = 0, mm2 = 0, mmFin = 0, mmCamp = 0;
+                let mmTerceiro = 0, mmQuarto = 0;
 
                 const [
                     { data: pJogos },
@@ -352,11 +344,11 @@ export default function PainelAdmin() {
                     const parteJogoBase = faseLimpa.split('_')[0];
                     const numJogo = parseInt(parteJogoBase.replace(/[^\d]/g, ''), 10);
 
-                    const chaveAjuste = `${perfil.id}_palpites_matamata_${p.id}`;
+                    const keyAjuste = `${perfil.id}_palpites_matamata_${p.id}`;
                     let pts = 0;
 
-                    if (mapaAjustes.has(chaveAjuste)) {
-                        pts = Number(mapaAjustes.get(chaveAjuste) || 0);
+                    if (mapaAjustes.has(keyAjuste)) {
+                        pts = Number(mapaAjustes.get(keyAjuste) || 0);
                     } else {
                         // 16 AVOS (J73 a J88) -> 5 pontos por acerto nas entradas estritas _1 e _2
                         if (numJogo >= 73 && numJogo <= 88) {
@@ -373,7 +365,6 @@ export default function PainelAdmin() {
                             if (!faseLimpa.includes('_')) {
                                 const deps = MAPA_DEPENDENCIAS_MOTOR[p.fase_vaga.trim().toUpperCase()];
                                 if (deps) {
-                                    // 🌟 Correção aqui: Adicionado o "|| []" para garantir que seja um array antes de buscar
                                     const listaPalpitesMM = pMM || [];
                                     const palpiteCasa = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === deps.casa)?.selecao_escolhida;
                                     const palpiteFora = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === deps.fora)?.selecao_escolhida;
@@ -423,10 +414,17 @@ export default function PainelAdmin() {
                                 pts = 0;
                             }
                         }
-                        // DISPUTA DE 3º LUGAR (J103) -> 20 pontos por acerto
+                        // DISPUTA DE 3º LUGAR (J103) -> 3º Lugar (25 pts) e 4º Lugar (25 pts)
                         else if (numJogo === 103) {
-                            if (!faseLimpa.includes('_') && p.selecao_escolhida && finalReal.has(removerAcentos(p.selecao_escolhida))) {
-                                pts = 20;
+                            if (!faseLimpa.includes('_') && p.selecao_escolhida) {
+                                const selecaoApostada = removerAcentos(p.selecao_escolhida);
+                                
+                                if (terceiroReal.has(selecaoApostada)) {
+                                    pts = 25;
+                                } 
+                                else if (quartoReal.has(selecaoApostada)) {
+                                    pts = 25;
+                                }
                             }
                         }
                         // GRANDE FINAL (J104) -> Campeão (70 pts) e Vice (35 pts)
@@ -454,7 +452,16 @@ export default function PainelAdmin() {
                         else if (numJogo >= 101 && numJogo <= 102) {
                             mm2 += (pts === 50 ? 2 : 1);
                         }
-                        else if (numJogo === 103 || numJogo === 104) {
+                        else if (numJogo === 103 && p.selecao_escolhida) {
+                            const selecaoApostada = removerAcentos(p.selecao_escolhida);
+                            if (terceiroReal.has(selecaoApostada)) {
+                                mmTerceiro++;
+                            } else if (quartoReal.has(selecaoApostada)) {
+                                mmQuarto++;
+                            }
+                            mmFin++;
+                        }
+                        else if (numJogo === 104) {
                             if (faseLimpa === 'j104') mmCamp++;
                             mmFin++;
                         }
@@ -502,7 +509,9 @@ export default function PainelAdmin() {
                     acertos_quartas: mm4,
                     acertos_semi: mm2,
                     acertos_finalistas: mmFin,
-                    acertos_campeao: mmCamp
+                    acertos_campeao: mmCamp,
+                    acertos_terceiro: mmTerceiro,
+                    acertos_quarto: mmQuarto
                 });
             }
 
@@ -570,12 +579,12 @@ export default function PainelAdmin() {
                 <GerenciadorFasesAdmin />
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4 max-h-[600px] overflow-y-auto">
+                    <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4 max-h-[600px] overflow-y-auto font-mono">
                         <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-emerald-400">⚽ Resultados Fase de Grupos</h2>
                         <div className="space-y-3">
                             {jogos?.map((j) => (
                                 <div key={j.id} className="flex items-center justify-between bg-black/30 p-2.5 rounded-xl border border-white/5 text-xs">
-                                    <span className="text-gray-500 font-mono">G{j.grupo}</span>
+                                    <span className="text-gray-500">G{j.grupo}</span>
                                     <div className="flex items-center gap-2 w-3/4 justify-end">
                                         <span className="truncate font-medium">{j.time_casa}</span>
                                         <input
@@ -600,31 +609,8 @@ export default function PainelAdmin() {
 
                     <div className="space-y-8">
                         <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4">
-                            <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-blue-400">⚡ Resultados Oficiais Mata-Mata</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs max-h-[250px] overflow-y-auto pr-1">
-                                {Array.from({ length: 32 }, (_, i) => `J${73 + i}`).map(id => (
-                                    <div key={id} className="flex items-center justify-between bg-black/20 p-2 rounded-lg border border-white/5">
-                                        <span className="font-bold text-gray-400">
-                                            {id === 'J104' ? '🏆 Final (J104)' : id === 'J103' ? '🥉 3º Lugar (J103)' : `${id}:`}
-                                        </span>
-                                        <input
-                                            type="text"
-                                            placeholder="Seleção Vencedora"
-                                            value={resultadosMM[id] || ''}
-                                            onChange={(e) => {
-                                                setResultadosMM(p => ({ ...p, [id]: e.target.value }));
-                                                salvarResultadoMM(id, e.target.value);
-                                            }}
-                                            className="bg-slate-900 border border-white/10 p-1.5 rounded text-right w-36 font-semibold outline-none focus:border-blue-500"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="bg-slate-950 p-6 rounded-2xl border border-white/5 space-y-4">
-                            <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-purple-400">🔥 Gabarito Palpites Especiais</h2>
-                            <div className="space-y-3 text-xs max-h-[250px] overflow-y-auto pr-1">
+                            <h2 className="text-lg font-bold border-b border-white/10 pb-2 text-purple-400 font-mono">🔥 Gabarito Palpites Especiais</h2>
+                            <div className="space-y-3 text-xs max-h-[450px] overflow-y-auto pr-1">
                                 {CATEGORIAS_ESPECIAIS.map(c => (
                                     <div key={c.id} className="flex items-center justify-between bg-black/20 p-2 rounded-lg border border-white/5 gap-4">
                                         <span className="font-semibold text-gray-300">{c.label}:</span>
@@ -647,7 +633,7 @@ export default function PainelAdmin() {
             )}
 
             <div className="bg-slate-950 p-6 rounded-2xl border border-amber-500/20 mt-10">
-                <h2 className="text-xl font-black text-amber-400 mb-6">🛠️ Seção de Auditoria de Participantes</h2>
+                <h2 className="text-xl font-black text-amber-400 mb-6 font-mono">🛠️ Seção de Auditoria de Participantes</h2>
                 <select
                     className="w-full bg-slate-900 border border-white/20 p-4 rounded-xl mb-8 text-white font-semibold outline-none"
                     onChange={(e) => carregarDadosUsuarioAuditoria(e.target.value)}
@@ -720,32 +706,32 @@ function SecaoCorrecao({ titulo, itens, tabela, renderLabel, renderPalpite, onSa
     };
 
     return (
-        <div className="border border-white/10 rounded-xl overflow-hidden bg-black/20">
+        <div className="border border-white/10 rounded-xl overflow-hidden bg-black/20 font-sans">
             <button className="w-full p-4 text-left font-black flex justify-between text-white bg-slate-900/50 hover:bg-slate-900 transition" onClick={() => setAberto(!aberto)}>
                 <span>{titulo}</span>
                 <span>{aberto ? '▲' : '▼'}</span>
             </button>
             {aberto && (
                 <div className="p-4 border-t border-white/10 space-y-2 bg-black/40">
-                    <div className="grid grid-cols-12 text-[10px] font-bold text-gray-400 uppercase px-2 pb-2 border-b border-white/5">
+                    <div className="grid grid-cols-12 text-[10px] font-bold text-gray-400 uppercase px-2 pb-2 border-b border-white/5 font-mono">
                         <span className="col-span-4">Item Evaluated</span>
                         <span className="col-span-3 text-center text-amber-500">Palpite Usuário</span>
                         <span className="col-span-2 text-center">Pts Sistema</span>
                         <span className="col-span-3 text-center">Ajuste Manual</span>
                     </div>
                     {itensFiltrados?.length === 0 ? (
-                        <p className="text-xs text-gray-500 p-2">Nenhum palpite enviado nesta categoria.</p>
+                        <p className="text-xs text-gray-500 p-2 font-mono">Nenhum palpite enviado nesta categoria.</p>
                     ) : (
                         itensFiltrados?.map((p: any) => (
-                            <div key={p.id} className="grid grid-cols-12 gap-2 items-center bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/10 transition">
-                                <div className="col-span-4 flex items-center gap-2 truncate">
+                            <div key={p.id} className="grid grid-cols-12 gap-2 items-center bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/10 transition font-mono">
+                                <div className="col-span-4 flex items-center gap-2 truncate font-sans">
                                     <span className="text-xs font-semibold text-gray-200 truncate">{renderLabel(p)}</span>
                                     {obterBadgeFase(p.fase_vaga)}
                                 </div>
-                                <span className="col-span-3 text-center text-xs font-black text-amber-400 bg-amber-500/10 py-1 rounded border border-amber-500/20 truncate px-1">
+                                <span className="col-span-3 text-center text-xs font-black text-amber-400 bg-amber-500/10 py-1 rounded border border-amber-500/20 truncate px-1 font-sans">
                                     {renderPalpite(p)}
                                 </span>
-                                <span className="col-span-2 text-center text-emerald-400 font-mono font-bold text-sm">
+                                <span className="col-span-2 text-center text-emerald-400 font-bold text-sm">
                                     {p.pontos_ganhos ?? 0}
                                 </span>
                                 <input
