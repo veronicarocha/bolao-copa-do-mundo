@@ -410,30 +410,35 @@ export default function PainelAdmin() {
                                 pts = 0;
                             }
                         }
-                        // 🛠️ DISPUTA DE 3º LUGAR (J103) -> CORRIGIDO PARA POSIÇÃO EXATA
+                        // DISPUTA DE 3º LUGAR (J103) -> Posição exata
                         else if (numJogo === 103) {
                             if (p.selecao_escolhida) {
                                 const selecaoApostada = removerAcentos(p.selecao_escolhida);
-                                
-                                // Verifica a string da chave estrutural do palpite para saber a vaga pretendida
                                 if (faseLimpa === 'j103_3' || faseLimpa.includes('terceiro')) {
                                     if (terceiroReal.has(selecaoApostada)) pts = 25;
                                 } else if (faseLimpa === 'j103_4' || faseLimpa.includes('quarto')) {
                                     if (quartoReal.has(selecaoApostada)) pts = 25;
                                 } else {
-                                    // Fallback caso sua string estrutural seja 'j103_1' (casa/3º) ou 'j103_2' (fora/4º)
                                     if (faseLimpa.endsWith('_1') && terceiroReal.has(selecaoApostada)) pts = 25;
                                     if (faseLimpa.endsWith('_2') && quartoReal.has(selecaoApostada)) pts = 25;
                                 }
                             }
                         }
+                        // 🛠️ GRANDE FINAL (J104) -> CORRIGIDO PARA ISOLAR CAMPEÃO E VICE DE FORMA PRECISA
                         else if (numJogo === 104) {
                             if (p.selecao_escolhida) {
                                 const selecaoApostada = removerAcentos(p.selecao_escolhida);
-                                if (faseLimpa === 'j104') {
+                                
+                                // Caso seja o registro específico do Campeão
+                                if (faseLimpa === 'j104' || faseLimpa.includes('campeao')) {
                                     if (campeaoReal.has(selecaoApostada)) pts = 70;
-                                } else if (!faseLimpa.includes('_') || faseLimpa.includes('vice')) {
-                                    if (finalReal.has(selecaoApostada)) pts = 35;
+                                } 
+                                // Caso seja o registro específico do Vice-campeão
+                                else {
+                                    // O vice real é quem está em finalistas reais, mas NÃO ganhou o título
+                                    if (finalReal.has(selecaoApostada) && !campeaoReal.has(selecaoApostada)) {
+                                        pts = 35;
+                                    }
                                 }
                             }
                         }
@@ -460,8 +465,11 @@ export default function PainelAdmin() {
                             }
                             mmFin++;
                         }
+                        // 🛠️ Atualização precisa da contagem dos finalistas para bater com a matemática do front
                         else if (numJogo === 104) {
-                            if (faseLimpa === 'j104') mmCamp++;
+                            if (faseLimpa === 'j104' || faseLimpa.includes('campeao')) {
+                                mmCamp++;
+                            }
                             mmFin++;
                         }
                     }
