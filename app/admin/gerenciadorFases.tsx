@@ -26,9 +26,9 @@ export default function GerenciadorFasesAdmin() {
     oitavas: 16,
     quartas: 8,
     semi: 4,
-    terceiro: 1,    // 🌟 Adicionado para o 3º colocado (25 pts)
-    quarto: 1,      // 🌟 Adicionado para o 4º colocado (25 pts)
-    finalistas: 2,  // Mantém os finalistas reais (para o cálculo do Vice de 35 pts)
+    terceiro: 1,    // 3º colocado (25 pts)
+    quarto: 1,      // 4º colocado (25 pts)
+    finalistas: 1,  // 🌟 Alterado de 2 para 1: Agora armazena EXCLUSIVAMENTE a seleção do Vice-Campeão!
     campeao: 1      // Grande Campeão (70 pts)
   };
 
