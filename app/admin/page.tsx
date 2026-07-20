@@ -22,12 +22,12 @@ const MAPA_DEPENDENCIAS_MOTOR: Record<string, { casa: string; fora: string }> = 
     'J92': { casa: 'J79', fora: 'J80' },
     'J95': { casa: 'J86', fora: 'J88' },
     'J96': { casa: 'J85', fora: 'J87' },
-    
+
     'J97': { casa: 'J89', fora: 'J90' },
     'J98': { casa: 'J93', fora: 'J94' },
     'J99': { casa: 'J91', fora: 'J92' },
     'J100': { casa: 'J95', fora: 'J96' },
-    
+
     'J101': { casa: 'J97', fora: 'J98' },
     'J102': { casa: 'J99', fora: 'J100' },
     'J104': { casa: 'J101', fora: 'J102' }
@@ -242,7 +242,7 @@ export default function PainelAdmin() {
 
     const salvarResultadoEsp = async (pId: string, resposta: string) => {
         if (!resposta) return;
-        await supabase.from('resultados_especiais').upsert({ pergunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
+        await supabase.from('resultados_especiais').upsert({ pregunta_id: pId.trim(), resposta_real: resposta.trim() }, { onConflict: 'pergunta_id' });
     };
 
     const rodarCalculoPontuacaoGlobal = async () => {
@@ -424,31 +424,31 @@ export default function PainelAdmin() {
                                 }
                             }
                         }
-                        // 🛠️ GRANDE FINAL (J104) -> Validação do Campeão e dedução dinâmica do Vice
+                        // 🏆 GRANDE FINAL (J104) -> Validação do Campeão e dedução dinâmica do Vice pelas Semifinais
                         else if (numJogo === 104) {
                             if (p.selecao_escolhida) {
                                 const selecaoApostada = removerAcentos(p.selecao_escolhida);
-                                
-                                // 1. Avalia o CAMPEÃO (Ganha 70 pontos)
+
+                                // 1. Avalia se o palpite do J104 acertou o Campeão Oficial
                                 if (campeaoReal.has(selecaoApostada)) {
                                     pts = 70;
                                 }
 
-                                // 2. DEDUÇÃO DO VICE (Compara as semifinais J101 e J102 contra o Campeão apostado)
+                                // 2. Dedução estrutural do Vice: Procura as chaves J101 e J102 nas chaves do próprio usuário
                                 const listaPalpitesMM = pMM || [];
                                 const palpiteJ101 = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === 'J101')?.selecao_escolhida;
                                 const palpiteJ102 = listaPalpitesMM.find(x => x.fase_vaga.trim().toUpperCase() === 'J102')?.selecao_escolhida;
-                                
+
                                 let viceApostado = '';
-                                
+
                                 if (palpiteJ101 && removerAcentos(palpiteJ101) === selecaoApostada) {
                                     viceApostado = palpiteJ102 ? removerAcentos(palpiteJ102) : '';
                                 } else if (palpiteJ102 && removerAcentos(palpiteJ102) === selecaoApostada) {
                                     viceApostado = palpiteJ101 ? removerAcentos(palpiteJ101) : '';
                                 }
-                                
-                                // Se o vice simulado bater com o finalReal oficial, concede os +35 pontos acumulados
-                                if (viceApostado && finalReal.has(viceApostado)) {
+
+                                // Se o vice encontrado nas chaves bater com o finalReal oficial (Argentina), soma os 35 pontos!
+                                if (viceApostado && finalReal.has(removerAcentos(viceApostado))) {
                                     pts += 35;
                                 }
                             }
@@ -478,10 +478,9 @@ export default function PainelAdmin() {
                         }
                         // Sincronização condicional dos contadores baseados na composição da nota do J104
                         else if (numJogo === 104) {
-                            if (faseLimpa === 'j104' || faseLimpa.includes('campeao')) {
-                                if (pts >= 70) mmCamp++;
-                                if (pts === 35 || pts === 105) mmFin++;
-                            }
+                            if (pts >= 70) mmCamp++; // Acertou o campeão
+                            if (pts === 35) mmFin++; // Acertou só o vice
+                            if (pts === 105) mmFin += 2; // Acertou campeão E vice (soma 2 para balancear a subtração do front)
                         }
                     }
 
